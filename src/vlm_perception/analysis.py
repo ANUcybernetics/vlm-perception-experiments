@@ -5,72 +5,78 @@ from scipy.stats import fisher_exact
 
 from vlm_perception.storage import load_results
 
+GROUP = ["model", "prompt_id"]
+
 
 def overall_accuracy(df: pl.DataFrame) -> pl.DataFrame:
     return (
         df.filter(pl.col("correct").is_not_null())
-        .group_by("model")
+        .group_by(*GROUP)
         .agg(
             pl.col("correct").sum().alias("n_correct"),
             pl.col("correct").count().alias("n_total"),
             pl.col("correct").mean().alias("accuracy"),
         )
-        .sort("model")
+        .sort(*GROUP)
     )
 
 
 def accuracy_by_layout(df: pl.DataFrame) -> pl.DataFrame:
     return (
         df.filter(pl.col("correct").is_not_null())
-        .group_by("model", "crisp_on_top")
+        .group_by(*GROUP, "crisp_on_top")
         .agg(
             pl.col("correct").sum().alias("n_correct"),
             pl.col("correct").count().alias("n_total"),
             pl.col("correct").mean().alias("accuracy"),
         )
-        .sort("model", "crisp_on_top")
+        .sort(*GROUP, "crisp_on_top")
     )
 
 
 def accuracy_by_colour(df: pl.DataFrame) -> pl.DataFrame:
     return (
         df.filter(pl.col("correct").is_not_null())
-        .group_by("model", "colour_crisp", "colour_blurred")
+        .group_by(*GROUP, "colour_crisp", "colour_blurred")
         .agg(
             pl.col("correct").sum().alias("n_correct"),
             pl.col("correct").count().alias("n_total"),
             pl.col("correct").mean().alias("accuracy"),
         )
-        .sort("model", "colour_crisp", "colour_blurred")
+        .sort(*GROUP, "colour_crisp", "colour_blurred")
     )
 
 
 def accuracy_by_side(df: pl.DataFrame) -> pl.DataFrame:
     return (
         df.filter(pl.col("correct").is_not_null())
-        .group_by("model", "crisp_side")
+        .group_by(*GROUP, "crisp_side")
         .agg(
             pl.col("correct").sum().alias("n_correct"),
             pl.col("correct").count().alias("n_total"),
             pl.col("correct").mean().alias("accuracy"),
         )
-        .sort("model", "crisp_side")
+        .sort(*GROUP, "crisp_side")
     )
 
 
 def depth_order_fisher_test(df: pl.DataFrame) -> pl.DataFrame:
     """Fisher's exact test for association between depth order and correctness.
 
-    For each model, constructs a 2x2 contingency table (crisp-on-top vs
-    blurred-on-top) x (correct vs incorrect) and runs Fisher's exact test.
-    This is the right test here: it's exact (no asymptotic approximation),
-    makes no distributional assumptions, and directly tests whether depth
-    order is associated with response correctness.
+    For each model/prompt combination, constructs a 2x2 contingency table
+    (crisp-on-top vs blurred-on-top) x (correct vs incorrect) and runs
+    Fisher's exact test. This is the right test here: it's exact (no
+    asymptotic approximation), makes no distributional assumptions, and
+    directly tests whether depth order is associated with response correctness.
     """
     valid = df.filter(pl.col("correct").is_not_null())
     rows = []
-    for model in valid["model"].unique().sort().to_list():
-        m = valid.filter(pl.col("model") == model)
+    groups = valid.select(*GROUP).unique().sort(*GROUP)
+    for row in groups.iter_rows(named=True):
+        mask = pl.lit(True)
+        for col in GROUP:
+            mask = mask & (pl.col(col) == row[col])
+        m = valid.filter(mask)
         crisp_top = m.filter(pl.col("crisp_on_top"))
         blurred_top = m.filter(pl.col("crisp_on_top").not_())
         table = [
@@ -78,14 +84,14 @@ def depth_order_fisher_test(df: pl.DataFrame) -> pl.DataFrame:
             [int(blurred_top["correct"].sum()), int((~blurred_top["correct"]).sum())],
         ]
         odds_ratio, p_value = fisher_exact(table)
-        rows.append({"model": model, "odds_ratio": odds_ratio, "p_value": p_value})
-    return pl.DataFrame(rows).sort("model")
+        rows.append({**row, "odds_ratio": odds_ratio, "p_value": p_value})
+    return pl.DataFrame(rows).sort(*GROUP)
 
 
 def unparseable_count(df: pl.DataFrame) -> pl.DataFrame:
     return (
         df.filter(pl.col("parsed_answer").is_null())
-        .group_by("model")
+        .group_by(*GROUP)
         .agg(pl.col("model").count().alias("n_unparseable"))
     )
 

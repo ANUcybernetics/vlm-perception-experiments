@@ -13,6 +13,7 @@ def _make_df() -> pl.DataFrame:
     return pl.DataFrame(
         {
             "model": ["m1", "m1", "m1", "m1", "m2", "m2"],
+            "prompt_id": ["neutral"] * 6,
             "crisp_on_top": [True, True, False, False, True, False],
             "crisp_side": ["left", "left", "right", "right", "left", "right"],
             "colour_crisp": ["red", "blue", "green", "red", "red", "red"],
@@ -65,6 +66,7 @@ def _make_fisher_df() -> pl.DataFrame:
             rows.append(
                 {
                     "model": "biased",
+                    "prompt_id": "neutral",
                     "crisp_on_top": crisp_on_top,
                     "crisp_side": "left",
                     "colour_crisp": "red",
@@ -88,6 +90,7 @@ def test_depth_order_fisher_test_not_significant():
     df = pl.DataFrame(
         {
             "model": ["fair"] * 20,
+            "prompt_id": ["neutral"] * 20,
             "crisp_on_top": [True] * 10 + [False] * 10,
             "crisp_side": ["left"] * 20,
             "colour_crisp": ["red"] * 20,
