@@ -7,7 +7,7 @@ from vlm_perception.models import Condition, Side, all_conditions
 CANVAS_SIZE = 512
 CIRCLE_RADIUS = 100
 OVERLAP_OFFSET = 75
-BLUR_RADIUS = 8
+BLUR_RADIUS = 20
 BG_GREY = (128, 128, 128)
 
 
