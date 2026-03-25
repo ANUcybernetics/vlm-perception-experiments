@@ -26,7 +26,7 @@ def _draw_circle(
     blur: bool,
 ) -> Image.Image:
     """Draw a single circle on a transparent layer, optionally blurred."""
-    layer = Image.new("RGBA", (CANVAS_SIZE, CANVAS_SIZE), (0, 0, 0, 0))
+    layer = Image.new("RGBA", (CANVAS_SIZE, CANVAS_SIZE), (*colour, 0))
     draw = ImageDraw.Draw(layer)
     x, y = centre
     bbox = (x - CIRCLE_RADIUS, y - CIRCLE_RADIUS, x + CIRCLE_RADIUS, y + CIRCLE_RADIUS)

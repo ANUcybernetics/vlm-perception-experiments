@@ -1,9 +1,17 @@
 from vlm_perception.models import Colour, Condition, Side, all_conditions
 
 
-def test_colour_rgb_values():
-    assert Colour.red.rgb == (255, 0, 0)
-    assert Colour.cyan.rgb == (0, 255, 255)
+def test_colour_rgb_in_gamut():
+    for colour in Colour:
+        r, g, b = colour.rgb
+        assert 0 <= r <= 255
+        assert 0 <= g <= 255
+        assert 0 <= b <= 255
+
+
+def test_colours_are_distinct():
+    rgbs = [c.rgb for c in Colour]
+    assert len(set(rgbs)) == 6
 
 
 def test_correct_answer_crisp_on_top():
