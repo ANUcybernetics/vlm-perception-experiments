@@ -1,8 +1,7 @@
-from enum import Enum
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from enum import StrEnum
 
 from pydantic import BaseModel
-
 
 OKLCH_LIGHTNESS = 0.7
 OKLCH_CHROMA = 0.15
@@ -21,25 +20,22 @@ def _oklch_to_rgb(L: float, C: float, h_deg: float) -> tuple[int, int, int]:
     m_ = L - 0.1055613458 * a - 0.0638541728 * b
     s_ = L - 0.0894841775 * a - 1.2914855480 * b
 
-    l = l_ * l_ * l_
-    m = m_ * m_ * m_
-    s = s_ * s_ * s_
+    lc = l_ * l_ * l_
+    mc = m_ * m_ * m_
+    sc = s_ * s_ * s_
 
-    r_lin = +4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s
-    g_lin = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s
-    b_lin = -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s
+    r_lin = +4.0767416621 * lc - 3.3077115913 * mc + 0.2309699292 * sc
+    g_lin = -1.2684380046 * lc + 2.6097574011 * mc - 0.3413193965 * sc
+    b_lin = -0.0041960863 * lc - 0.7034186147 * mc + 1.7076147010 * sc
 
     def linear_to_srgb(x: float) -> int:
-        if x <= 0.0031308:
-            v = 12.92 * x
-        else:
-            v = 1.055 * (x ** (1.0 / 2.4)) - 0.055
+        v = 12.92 * x if x <= 0.0031308 else 1.055 * x ** (1.0 / 2.4) - 0.055
         return max(0, min(255, round(v * 255)))
 
     return (linear_to_srgb(r_lin), linear_to_srgb(g_lin), linear_to_srgb(b_lin))
 
 
-class Colour(str, Enum):
+class Colour(StrEnum):
     red = "red"
     yellow = "yellow"
     green = "green"
@@ -65,7 +61,7 @@ class Colour(str, Enum):
         return _oklch_to_rgb(OKLCH_LIGHTNESS, OKLCH_CHROMA, self.oklch_hue)
 
 
-class Side(str, Enum):
+class Side(StrEnum):
     left = "left"
     right = "right"
 
@@ -88,7 +84,10 @@ class Condition(BaseModel):
     @property
     def image_filename(self) -> str:
         top = "crisp-top" if self.crisp_on_top else "blurred-top"
-        return f"{top}_{self.crisp_side.value}_{self.colour_crisp.value}_{self.colour_blurred.value}.png"
+        side = self.crisp_side.value
+        cc = self.colour_crisp.value
+        cb = self.colour_blurred.value
+        return f"{top}_{side}_{cc}_{cb}.png"
 
 
 class TrialResult(BaseModel):
@@ -104,7 +103,7 @@ class TrialResult(BaseModel):
 
     @staticmethod
     def now() -> datetime:
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
 
 
 def all_conditions() -> list[Condition]:

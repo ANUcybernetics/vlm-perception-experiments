@@ -45,7 +45,9 @@ def generate_image(condition: Condition) -> Image.Image:
     blurred_centre = _circle_centre(blurred_side)
 
     crisp_layer = _draw_circle(condition.colour_crisp.rgb, crisp_centre, blur=False)
-    blurred_layer = _draw_circle(condition.colour_blurred.rgb, blurred_centre, blur=True)
+    blurred_layer = _draw_circle(
+        condition.colour_blurred.rgb, blurred_centre, blur=True
+    )
 
     if condition.crisp_on_top:
         canvas = Image.alpha_composite(canvas, blurred_layer)

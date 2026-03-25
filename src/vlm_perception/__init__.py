@@ -1,1 +1,1 @@
-"""Test whether VLMs can determine occlusion order of crisp vs blurred overlapping circles."""
+"""Test whether VLMs can determine occlusion order of overlapping circles."""

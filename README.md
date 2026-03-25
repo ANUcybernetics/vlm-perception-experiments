@@ -51,7 +51,7 @@ Prints accuracy breakdowns by model, layout (crisp-on-top vs blurred-on-top), sp
 
 - **Stimuli**: two overlapping circles on a mid-grey (128, 128, 128) background, one crisp and one Gaussian-blurred (radius 8px). Circles are 100px radius with 75px horizontal offset between centres (~25% overlap).
 - **Conditions**: 2 (depth order) x 2 (crisp on left/right) x 6 x 5 (colour pairs from 6 equidistant hues, excluding same-colour) = 120 conditions.
-- **Colours**: red, yellow, green, cyan, blue, magenta (full saturation, evenly spaced around the HSV wheel).
+- **Colours**: red, yellow, green, cyan, blue, magenta --- 6 equally-spaced hues in OKLCH (L=0.7, C=0.15) for perceptual uniformity.
 - **Dependent variable**: binary left/right response parsed from VLM output.
 
 ## Licence

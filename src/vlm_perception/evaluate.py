@@ -12,7 +12,7 @@ PROMPT = (
     "One circle is on the left and one is on the right. "
     "One circle is in front of (occluding) the other. "
     "Which circle is in front --- the left circle or the right circle? "
-    "Reply with a single JSON object: {\"answer\": \"left\"} or {\"answer\": \"right\"}."
+    'Reply with a single JSON object: {"answer": "left"} or {"answer": "right"}.'
 )
 
 
@@ -49,14 +49,19 @@ def evaluate_anthropic(
                 "content": [
                     {
                         "type": "image",
-                        "source": {"type": "base64", "media_type": "image/png", "data": b64},
+                        "source": {
+                            "type": "base64",
+                            "media_type": "image/png",
+                            "data": b64,
+                        },
                     },
                     {"type": "text", "text": prompt},
                 ],
             }
         ],
     )
-    raw = response.content[0].text
+    block = response.content[0]
+    raw: str = block.text if isinstance(block, anthropic.types.TextBlock) else ""
     parsed = _parse_response(raw)
     correct = parsed == condition.correct_answer if parsed else None
     return TrialResult(
@@ -106,12 +111,6 @@ def evaluate_openai(
         correct=correct,
         timestamp=TrialResult.now(),
     )
-
-
-PROVIDERS: dict[str, type] = {
-    "anthropic": evaluate_anthropic,
-    "openai": evaluate_openai,
-}
 
 
 def evaluate(
