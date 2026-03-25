@@ -11,3 +11,6 @@ wheels/
 
 # Experiment outputs
 stimuli/
+
+# secrets and lies
+mise.local.toml
