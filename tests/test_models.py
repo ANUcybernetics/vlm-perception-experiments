@@ -66,7 +66,7 @@ def test_image_filename_format():
 def test_resolve_model_valid():
     spec = resolve_model("claude-sonnet-4-6")
     assert spec.provider == "anthropic"
-    assert spec.model_id == "claude-sonnet-4-6-20250415"
+    assert spec.model_id == "claude-sonnet-4-6"
 
 
 def test_resolve_model_openai():

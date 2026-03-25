@@ -11,9 +11,9 @@ class ModelSpec(NamedTuple):
 
 
 MODEL_REGISTRY: dict[str, ModelSpec] = {
-    "claude-opus-4-6": ModelSpec("anthropic", "claude-opus-4-6-20250415"),
-    "claude-sonnet-4-6": ModelSpec("anthropic", "claude-sonnet-4-6-20250415"),
-    "claude-haiku-4-5": ModelSpec("anthropic", "claude-haiku-4-5-20251001"),
+    "claude-opus-4-6": ModelSpec("anthropic", "claude-opus-4-6"),
+    "claude-sonnet-4-6": ModelSpec("anthropic", "claude-sonnet-4-6"),
+    "claude-haiku-4-5": ModelSpec("anthropic", "claude-haiku-4-5"),
     "gpt-5.4": ModelSpec("openai", "gpt-5.4"),
     "gpt-5.4-mini": ModelSpec("openai", "gpt-5.4-mini"),
     "gpt-5.4-nano": ModelSpec("openai", "gpt-5.4-nano"),

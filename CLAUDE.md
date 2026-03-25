@@ -22,6 +22,17 @@ uv run vlm-perception evaluate --model gpt-5.4-mini --reps 3
 
 Available models: `claude-opus-4-6`, `claude-sonnet-4-6`, `claude-haiku-4-5`, `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano`. Use `--limit N` to evaluate only the first N conditions.
 
+Approximate evaluation time for 360 trials (120 conditions x 3 reps), median per trial:
+
+| Model             | Per trial | 360 trials |
+| ----------------- | --------- | ---------- |
+| claude-opus-4-6   | ~2.4s     | ~15min     |
+| claude-sonnet-4-6 | ~1.2s     | ~7min      |
+| claude-haiku-4-5  | ~1.3s     | ~8min      |
+| gpt-5.4           | ~1.0s     | ~6min      |
+| gpt-5.4-mini      | ~0.9s     | ~5min      |
+| gpt-5.4-nano      | ~0.7s     | ~4min      |
+
 Results append to `results/results.csv`. Analyse with:
 
 ```sh
