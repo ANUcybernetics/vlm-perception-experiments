@@ -85,7 +85,7 @@ def evaluate_openai(
     b64 = _encode_image(image_path)
     response = client.chat.completions.create(
         model=model,
-        max_tokens=256,
+        max_completion_tokens=256,
         messages=[
             {
                 "role": "user",
