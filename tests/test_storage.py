@@ -13,6 +13,7 @@ def _make_result(correct: bool | None = True, model: str = "test-model") -> Tria
             colour_blurred=Colour.blue,
         ),
         model=model,
+        prompt_id="neutral",
         prompt="test prompt",
         raw_response='{"answer": "left"}',
         parsed_answer=Side.left,
@@ -28,6 +29,7 @@ def test_result_to_row_fields():
     assert row["crisp_side"] == "left"
     assert row["colour_crisp"] == "red"
     assert row["colour_blurred"] == "blue"
+    assert row["prompt_id"] == "neutral"
     assert row["correct_answer"] == "left"
     assert row["parsed_answer"] == "left"
     assert row["correct"] is True
@@ -42,6 +44,7 @@ def test_result_to_row_unparseable():
             colour_blurred=Colour.blue,
         ),
         model="test-model",
+        prompt_id="neutral",
         prompt="test prompt",
         raw_response="gibberish",
         parsed_answer=None,

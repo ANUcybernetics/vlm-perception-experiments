@@ -1,4 +1,5 @@
 import base64
+import json
 import re
 from pathlib import Path
 
@@ -7,13 +8,20 @@ import openai
 
 from vlm_perception.models import Condition, Side, TrialResult
 
-PROMPT = (
-    "This image shows two overlapping circles on a grey background. "
-    "One circle is on the left and one is on the right. "
-    "One circle is in front of (occluding) the other. "
-    "Which circle is in front --- the left circle or the right circle? "
-    'Reply with a single JSON object: {"answer": "left"} or {"answer": "right"}.'
-)
+PROMPTS_PATH = Path(__file__).parent / "prompts.json"
+DEFAULT_PROMPT_ID = "neutral"
+
+
+def load_prompts() -> dict[str, str]:
+    return json.loads(PROMPTS_PATH.read_text())
+
+
+def get_prompt(prompt_id: str) -> str:
+    prompts = load_prompts()
+    if prompt_id not in prompts:
+        available = ", ".join(prompts)
+        raise ValueError(f"Unknown prompt: {prompt_id!r}. Available: {available}")
+    return prompts[prompt_id]
 
 
 def _encode_image(path: Path) -> str:
@@ -35,9 +43,10 @@ def _parse_response(text: str) -> Side | None:
 def evaluate_anthropic(
     image_path: Path,
     condition: Condition,
-    model: str = "claude-sonnet-4-6-20250415",
-    prompt: str = PROMPT,
+    model: str = "claude-sonnet-4-6",
+    prompt_id: str = DEFAULT_PROMPT_ID,
 ) -> TrialResult:
+    prompt = get_prompt(prompt_id)
     client = anthropic.Anthropic()
     b64 = _encode_image(image_path)
     response = client.messages.create(
@@ -67,6 +76,7 @@ def evaluate_anthropic(
     return TrialResult(
         condition=condition,
         model=model,
+        prompt_id=prompt_id,
         prompt=prompt,
         raw_response=raw,
         parsed_answer=parsed,
@@ -79,8 +89,9 @@ def evaluate_openai(
     image_path: Path,
     condition: Condition,
     model: str = "gpt-5.4",
-    prompt: str = PROMPT,
+    prompt_id: str = DEFAULT_PROMPT_ID,
 ) -> TrialResult:
+    prompt = get_prompt(prompt_id)
     client = openai.OpenAI()
     b64 = _encode_image(image_path)
     response = client.chat.completions.create(
@@ -105,6 +116,7 @@ def evaluate_openai(
     return TrialResult(
         condition=condition,
         model=model,
+        prompt_id=prompt_id,
         prompt=prompt,
         raw_response=raw,
         parsed_answer=parsed,
@@ -118,11 +130,11 @@ def evaluate(
     condition: Condition,
     provider: str,
     model: str,
-    prompt: str = PROMPT,
+    prompt_id: str = DEFAULT_PROMPT_ID,
 ) -> TrialResult:
     if provider == "anthropic":
-        return evaluate_anthropic(image_path, condition, model=model, prompt=prompt)
+        return evaluate_anthropic(image_path, condition, model=model, prompt_id=prompt_id)
     elif provider == "openai":
-        return evaluate_openai(image_path, condition, model=model, prompt=prompt)
+        return evaluate_openai(image_path, condition, model=model, prompt_id=prompt_id)
     else:
         raise ValueError(f"Unknown provider: {provider}")

@@ -119,6 +119,7 @@ class TrialResult(BaseModel):
 
     condition: Condition
     model: str
+    prompt_id: str
     prompt: str
     raw_response: str
     parsed_answer: Side | None

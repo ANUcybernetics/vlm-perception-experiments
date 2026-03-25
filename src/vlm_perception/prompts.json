@@ -1,0 +1,6 @@
+{
+  "neutral": "This image shows two overlapping circles on a grey background. One circle is on the left and one is on the right. One circle is in front of (occluding) the other. Which circle is in front --- the left circle or the right circle? Reply with a single JSON object: {\"answer\": \"left\"} or {\"answer\": \"right\"}.",
+  "minimal": "Which circle is in front, the left or the right? Reply with just \"left\" or \"right\".",
+  "foreground": "Two circles overlap in this image. One is in the foreground and one is in the background. Is the foreground circle on the left side or the right side? Reply with a single JSON object: {\"answer\": \"left\"} or {\"answer\": \"right\"}.",
+  "psychophysics": "You are participating in a visual perception experiment. This image contains two overlapping circles that differ in sharpness --- one has crisp edges and the other has blurred edges. Based only on the visual information in the image, which circle appears to be closer to the viewer, the left or the right? Reply with a single JSON object: {\"answer\": \"left\"} or {\"answer\": \"right\"}."
+}

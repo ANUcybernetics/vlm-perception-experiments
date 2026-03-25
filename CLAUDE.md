@@ -16,6 +16,7 @@ To run VLM evaluation, set the relevant API key and run:
 ```sh
 export ANTHROPIC_API_KEY="..."
 uv run vlm-perception evaluate --model claude-sonnet-4-6 --reps 3
+uv run vlm-perception evaluate --model claude-sonnet-4-6 --reps 3 --prompt minimal
 
 export OPENAI_API_KEY="..."
 uv run vlm-perception evaluate --model gpt-5.4-mini --reps 3
@@ -23,7 +24,9 @@ uv run vlm-perception evaluate --model gpt-5.4-mini --reps 3
 
 Available models: `claude-opus-4-6`, `claude-sonnet-4-6`, `claude-haiku-4-5`,
 `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano`. Use `--limit N` to evaluate only the
-first N conditions.
+first N conditions. Use `--prompt <id>` to select a prompt variant (default:
+`neutral`). Available prompts: `neutral`, `minimal`, `foreground`,
+`psychophysics`. Prompt definitions are in `src/vlm_perception/prompts.json`.
 
 Approximate evaluation time for 360 trials (120 conditions x 3 reps), median per
 trial:
@@ -77,6 +80,7 @@ is: which circle is in front (occluding the other)?
     `MODEL_REGISTRY` for supported VLMs, and `all_conditions()` factorial
     generator
   - `stimuli.py` --- Pillow-based stimulus image generation
+  - `prompts.json` --- prompt registry mapping IDs to full prompt text
   - `evaluate.py` --- VLM API dispatch (Anthropic, OpenAI) with JSON/freetext
     response parsing
   - `storage.py` --- CSV append/load via polars
@@ -86,9 +90,9 @@ is: which circle is in front (occluding the other)?
 
 ## Results CSV schema
 
-Each row is one trial: `model`, `crisp_on_top`, `crisp_side`, `colour_crisp`,
-`colour_blurred`, `correct_answer`, `parsed_answer`, `correct`, `prompt`,
-`raw_response`, `timestamp`.
+Each row is one trial: `model`, `prompt_id`, `crisp_on_top`, `crisp_side`,
+`colour_crisp`, `colour_blurred`, `correct_answer`, `parsed_answer`, `correct`,
+`prompt`, `raw_response`, `timestamp`.
 
 ## Conventions
 

@@ -2,6 +2,7 @@ from pathlib import Path
 
 import typer
 
+from vlm_perception.evaluate import DEFAULT_PROMPT_ID, load_prompts
 from vlm_perception.models import MODEL_REGISTRY
 
 app = typer.Typer(help="VLM perception experiment: crisp vs blurred circle occlusion.")
@@ -10,6 +11,7 @@ DEFAULT_STIMULI_DIR = Path("stimuli")
 DEFAULT_RESULTS_PATH = Path("results/results.csv")
 
 AVAILABLE_MODELS = ", ".join(MODEL_REGISTRY)
+AVAILABLE_PROMPTS = ", ".join(load_prompts())
 
 
 @app.command()
@@ -37,15 +39,19 @@ def evaluate(
     results_path: Path = typer.Option(
         DEFAULT_RESULTS_PATH, help="CSV file for results"
     ),
+    prompt: str = typer.Option(
+        DEFAULT_PROMPT_ID, help=f"Prompt ID. Available: {AVAILABLE_PROMPTS}"
+    ),
     limit: int = typer.Option(
         0, help="Max conditions to evaluate (0 = all)"
     ),
 ) -> None:
     """Run VLM evaluation on all stimulus images."""
-    from vlm_perception.evaluate import evaluate as run_eval
+    from vlm_perception.evaluate import evaluate as run_eval, get_prompt
     from vlm_perception.models import all_conditions, resolve_model
     from vlm_perception.storage import append_results
 
+    get_prompt(prompt)
     spec = resolve_model(model)
     conditions = all_conditions()
     if limit > 0:
@@ -54,7 +60,7 @@ def evaluate(
     n = len(conditions)
     typer.echo(
         f"Running {total} trials ({n} conditions x {reps} reps) "
-        f"with {model} ({spec.provider}/{spec.model_id})"
+        f"with {model} ({spec.provider}/{spec.model_id}), prompt={prompt}"
     )
 
     results = []
@@ -69,6 +75,7 @@ def evaluate(
             result = run_eval(
                 image_path, condition,
                 provider=spec.provider, model=spec.model_id,
+                prompt_id=prompt,
             )
             results.append(result)
             status = (
