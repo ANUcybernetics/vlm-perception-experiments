@@ -38,15 +38,19 @@ def result_to_row(result: TrialResult) -> dict:
 
 
 def append_results(results: list[TrialResult], path: Path) -> None:
+    import io
+
     rows = [result_to_row(r) for r in results]
-    new_df = pl.DataFrame(rows)
-    if path.exists():
-        existing = pl.read_csv(path)
-        combined = pl.concat([existing, new_df], how="diagonal")
-    else:
+    new_df = pl.DataFrame(rows, schema={col: pl.Utf8 for col in COLUMNS})
+    file_exists = path.exists() and path.stat().st_size > 0
+    if not file_exists:
         path.parent.mkdir(parents=True, exist_ok=True)
-        combined = new_df
-    combined.write_csv(path)
+        new_df.write_csv(path)
+    else:
+        buf = io.StringIO()
+        new_df.write_csv(buf, include_header=False)
+        with open(path, "a") as f:
+            f.write(buf.getvalue())
 
 
 def load_results(path: Path) -> pl.DataFrame:

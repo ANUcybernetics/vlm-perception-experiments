@@ -63,7 +63,8 @@ def evaluate(
         f"with {model} ({spec.provider}/{spec.model_id}), prompt={prompt}"
     )
 
-    results = []
+    n_correct = 0
+    n_total = 0
     for rep in range(reps):
         for i, condition in enumerate(conditions):
             image_path = stimuli_dir / condition.image_filename
@@ -77,17 +78,17 @@ def evaluate(
                 provider=spec.provider, model=spec.model_id,
                 prompt_id=prompt,
             )
-            results.append(result)
+            append_results([result], results_path)
+            if result.correct is not None:
+                n_total += 1
+                if result.correct:
+                    n_correct += 1
             status = (
                 "correct"
                 if result.correct
                 else ("incorrect" if result.correct is False else "unparseable")
             )
             typer.echo(f"    -> {result.parsed_answer} ({status})")
-
-    append_results(results, results_path)
-    n_correct = sum(1 for r in results if r.correct is True)
-    n_total = sum(1 for r in results if r.correct is not None)
     typer.echo(
         f"\nDone. {n_correct}/{n_total} correct. Results saved to {results_path}"
     )
