@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import polars as pl
-from scipy.stats import fisher_exact
+from scipy.stats import chi2_contingency, fisher_exact
 
 from vlm_perception.storage import load_results
 
@@ -88,6 +88,45 @@ def depth_order_fisher_test(df: pl.DataFrame) -> pl.DataFrame:
     return pl.DataFrame(rows).sort(*GROUP)
 
 
+def prompt_effect(df: pl.DataFrame) -> tuple[pl.DataFrame, pl.DataFrame]:
+    """Chi-square test for prompt effect on correctness.
+
+    Returns (per_model results, pooled result) where each row contains
+    chi2, dof, and p_value. Also includes a wide accuracy table.
+    """
+    valid = df.filter(pl.col("correct").is_not_null())
+
+    def _chi2_for(sub: pl.DataFrame) -> dict:
+        ct = (
+            sub.group_by("prompt_id")
+            .agg(
+                pl.col("correct").sum().alias("correct"),
+                (pl.col("correct").count() - pl.col("correct").sum()).alias("incorrect"),
+            )
+            .sort("prompt_id")
+        )
+        table = ct.select("correct", "incorrect").to_numpy()
+        chi2, p, dof, _ = chi2_contingency(table)
+        return {"chi2": chi2, "dof": dof, "p_value": p}
+
+    per_model_rows = []
+    for model in sorted(valid["model"].unique().to_list()):
+        sub = valid.filter(pl.col("model") == model)
+        per_model_rows.append({"model": model, **_chi2_for(sub)})
+    per_model = pl.DataFrame(per_model_rows)
+
+    pooled = pl.DataFrame([{"model": "(pooled)", **_chi2_for(valid)}])
+
+    wide = (
+        valid.group_by("model", "prompt_id")
+        .agg(pl.col("correct").mean().alias("accuracy"))
+        .pivot(on="prompt_id", index="model", values="accuracy")
+        .sort("model")
+    )
+
+    return pl.concat([per_model, pooled]), wide
+
+
 def unparseable_count(df: pl.DataFrame) -> pl.DataFrame:
     return (
         df.filter(pl.col("parsed_answer").is_null())
@@ -111,6 +150,12 @@ def full_report(results_path: Path) -> str:
 
     sections.append("\n## Fisher's exact test: depth order vs correctness")
     sections.append(str(depth_order_fisher_test(df)))
+
+    chi2_results, wide_acc = prompt_effect(df)
+    sections.append("\n## Prompt effect: accuracy by model x prompt")
+    sections.append(str(wide_acc))
+    sections.append("\n## Prompt effect: chi-square test (prompt x correctness)")
+    sections.append(str(chi2_results))
 
     sections.append("\n## Accuracy by colour pair")
     sections.append(str(accuracy_by_colour(df)))
