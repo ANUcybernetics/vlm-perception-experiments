@@ -48,7 +48,7 @@ Each stimulus image shows two overlapping circles on a mid-grey background. One 
 
 - canvas: 512x512px, background RGB (128, 128, 128)
 - circle radius: 100px, centre offset: 75px (~25% area overlap)
-- blur: Gaussian radius 8px
+- blur: Gaussian radius 20px
 - colours: 6 OKLCH hues at L=0.7, C=0.15 (red, yellow, green, cyan, blue, magenta)
 
 ## Project structure
@@ -71,4 +71,4 @@ Each row is one trial: `model`, `crisp_on_top`, `crisp_side`, `colour_crisp`, `c
 - use `uv` via mise for all Python tooling
 - polars for dataframes, pydantic for validation
 - Australian English in prose (colour, analyse, etc.)
-- `stimuli/` and `results/` are gitignored
+- `stimuli/` is gitignored; `results/` is tracked
