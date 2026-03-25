@@ -3,6 +3,7 @@ import polars as pl
 from vlm_perception.analysis import (
     accuracy_by_layout,
     accuracy_by_side,
+    depth_order_fisher_test,
     overall_accuracy,
     unparseable_count,
 )
@@ -53,3 +54,48 @@ def test_unparseable_count():
     result = unparseable_count(_make_df())
     assert len(result) == 1
     assert result["n_unparseable"][0] == 1
+
+
+def _make_fisher_df() -> pl.DataFrame:
+    """Model that always picks the crisp circle: 100% when crisp on top, 0% when blurred on top."""
+    rows = []
+    for crisp_on_top in [True, False]:
+        for _ in range(10):
+            correct = crisp_on_top
+            rows.append(
+                {
+                    "model": "biased",
+                    "crisp_on_top": crisp_on_top,
+                    "crisp_side": "left",
+                    "colour_crisp": "red",
+                    "colour_blurred": "blue",
+                    "correct_answer": "left",
+                    "parsed_answer": "left",
+                    "correct": correct,
+                }
+            )
+    return pl.DataFrame(rows)
+
+
+def test_depth_order_fisher_test_significant():
+    result = depth_order_fisher_test(_make_fisher_df())
+    assert len(result) == 1
+    assert result["model"][0] == "biased"
+    assert result["p_value"][0] < 0.001
+
+
+def test_depth_order_fisher_test_not_significant():
+    df = pl.DataFrame(
+        {
+            "model": ["fair"] * 20,
+            "crisp_on_top": [True] * 10 + [False] * 10,
+            "crisp_side": ["left"] * 20,
+            "colour_crisp": ["red"] * 20,
+            "colour_blurred": ["blue"] * 20,
+            "correct_answer": ["left"] * 20,
+            "parsed_answer": ["left"] * 20,
+            "correct": [True, False] * 10,
+        }
+    )
+    result = depth_order_fisher_test(df)
+    assert result["p_value"][0] > 0.05

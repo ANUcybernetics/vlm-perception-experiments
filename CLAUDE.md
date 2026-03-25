@@ -1,6 +1,7 @@
 # vlm-perception
 
-VLM perception experiment: testing whether vision-language models can correctly identify occlusion order of crisp vs blurred overlapping circles.
+VLM perception experiment: testing whether vision-language models can correctly
+identify occlusion order of crisp vs blurred overlapping circles.
 
 ## Quick start
 
@@ -20,9 +21,12 @@ export OPENAI_API_KEY="..."
 uv run vlm-perception evaluate --model gpt-5.4-mini --reps 3
 ```
 
-Available models: `claude-opus-4-6`, `claude-sonnet-4-6`, `claude-haiku-4-5`, `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano`. Use `--limit N` to evaluate only the first N conditions.
+Available models: `claude-opus-4-6`, `claude-sonnet-4-6`, `claude-haiku-4-5`,
+`gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano`. Use `--limit N` to evaluate only the
+first N conditions.
 
-Approximate evaluation time for 360 trials (120 conditions x 3 reps), median per trial:
+Approximate evaluation time for 360 trials (120 conditions x 3 reps), median per
+trial:
 
 | Model             | Per trial | 360 trials |
 | ----------------- | --------- | ---------- |
@@ -47,27 +51,34 @@ uv run pytest -x
 
 ## Experimental design
 
-Each stimulus image shows two overlapping circles on a mid-grey background. One circle is crisp, the other is Gaussian-blurred. The question posed to the VLM is: which circle is in front (occluding the other)?
+Each stimulus image shows two overlapping circles on a mid-grey background. One
+circle is crisp, the other is Gaussian-blurred. The question posed to the VLM
+is: which circle is in front (occluding the other)?
 
 ### Factorial conditions (120 total)
 
 - **depth order** (2): crisp on top, blurred on top
 - **spatial position** (2): crisp circle on left, crisp circle on right
-- **colour pairs** (6 x 5 = 30): 6 hues (OKLCH, perceptually uniform) for each circle, excluding same-colour pairs
+- **colour pairs** (6 x 5 = 30): 6 hues (OKLCH, perceptually uniform) for each
+  circle, excluding same-colour pairs
 
 ### Stimulus parameters
 
 - canvas: 512x512px, background RGB (128, 128, 128)
 - circle radius: 100px, centre offset: 75px (~25% area overlap)
 - blur: Gaussian radius 20px
-- colours: 6 OKLCH hues at L=0.7, C=0.15 (red, yellow, green, cyan, blue, magenta)
+- colours: 6 OKLCH hues at L=0.7, C=0.15 (red, yellow, green, cyan, blue,
+  magenta)
 
 ## Project structure
 
 - `src/vlm_perception/` --- main package
-  - `models.py` --- pydantic models (Colour, Side, Condition, TrialResult), `MODEL_REGISTRY` for supported VLMs, and `all_conditions()` factorial generator
+  - `models.py` --- pydantic models (Colour, Side, Condition, TrialResult),
+    `MODEL_REGISTRY` for supported VLMs, and `all_conditions()` factorial
+    generator
   - `stimuli.py` --- Pillow-based stimulus image generation
-  - `evaluate.py` --- VLM API dispatch (Anthropic, OpenAI) with JSON/freetext response parsing
+  - `evaluate.py` --- VLM API dispatch (Anthropic, OpenAI) with JSON/freetext
+    response parsing
   - `storage.py` --- CSV append/load via polars
   - `analysis.py` --- accuracy breakdowns by model, layout, side, colour pair
   - `cli.py` --- typer CLI with `generate`, `evaluate`, `analyse` subcommands
@@ -75,7 +86,9 @@ Each stimulus image shows two overlapping circles on a mid-grey background. One 
 
 ## Results CSV schema
 
-Each row is one trial: `model`, `crisp_on_top`, `crisp_side`, `colour_crisp`, `colour_blurred`, `correct_answer`, `parsed_answer`, `correct`, `prompt`, `raw_response`, `timestamp`.
+Each row is one trial: `model`, `crisp_on_top`, `crisp_side`, `colour_crisp`,
+`colour_blurred`, `correct_answer`, `parsed_answer`, `correct`, `prompt`,
+`raw_response`, `timestamp`.
 
 ## Conventions
 

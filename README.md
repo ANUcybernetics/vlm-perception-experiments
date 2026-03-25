@@ -1,8 +1,13 @@
 # vlm-perception
 
-Do vision-language models (VLMs) assume that crisp objects are in front of blurred objects?
+Do vision-language models (VLMs) assume that crisp objects are in front of
+blurred objects?
 
-This project generates simple stimuli --- pairs of overlapping circles where one is crisp and one is Gaussian-blurred --- and asks VLMs to determine which circle occludes the other. The hypothesis is that current VLMs struggle when the blurred circle is in front, because they have a prior that crisp means foreground.
+This project generates simple stimuli --- pairs of overlapping circles where one
+is crisp and one is Gaussian-blurred --- and asks VLMs to determine which circle
+occludes the other. The hypothesis is that current VLMs struggle when the
+blurred circle is in front, because they have a prior that crisp means
+foreground.
 
 ## Setup
 
@@ -28,7 +33,8 @@ export OPENAI_API_KEY="..."
 uv run vlm-perception generate
 ```
 
-Produces 120 images (2 depth orders x 2 spatial positions x 6 x 5 colour pairs, excluding same-colour) in `stimuli/`.
+Produces 120 images (2 depth orders x 2 spatial positions x 6 x 5 colour pairs,
+excluding same-colour) in `stimuli/`.
 
 ### Run evaluation
 
@@ -37,7 +43,9 @@ uv run vlm-perception evaluate --model claude-sonnet-4-6 --reps 3
 uv run vlm-perception evaluate --model gpt-5.4-mini --reps 3
 ```
 
-Available models: `claude-opus-4-6`, `claude-sonnet-4-6`, `claude-haiku-4-5`, `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano`. Use `--limit N` to evaluate only the first N conditions.
+Available models: `claude-opus-4-6`, `claude-sonnet-4-6`, `claude-haiku-4-5`,
+`gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano`. Use `--limit N` to evaluate only the
+first N conditions.
 
 Results are appended to `results/results.csv`.
 
@@ -47,13 +55,18 @@ Results are appended to `results/results.csv`.
 uv run vlm-perception analyse
 ```
 
-Prints accuracy breakdowns by model, layout (crisp-on-top vs blurred-on-top), spatial position, and colour pair.
+Prints accuracy breakdowns by model, layout (crisp-on-top vs blurred-on-top),
+spatial position, and colour pair.
 
 ## Experimental design
 
-- **Stimuli**: two overlapping circles on a mid-grey (128, 128, 128) background, one crisp and one Gaussian-blurred (radius 8px). Circles are 100px radius with 75px horizontal offset between centres (~25% overlap).
-- **Conditions**: 2 (depth order) x 2 (crisp on left/right) x 6 x 5 (colour pairs from 6 equidistant hues, excluding same-colour) = 120 conditions.
-- **Colours**: red, yellow, green, cyan, blue, magenta --- 6 equally-spaced hues in OKLCH (L=0.7, C=0.15) for perceptual uniformity.
+- **Stimuli**: two overlapping circles on a mid-grey (128, 128, 128) background,
+  one crisp and one Gaussian-blurred (radius 8px). Circles are 100px radius with
+  75px horizontal offset between centres (~25% overlap).
+- **Conditions**: 2 (depth order) x 2 (crisp on left/right) x 6 x 5 (colour
+  pairs from 6 equidistant hues, excluding same-colour) = 120 conditions.
+- **Colours**: red, yellow, green, cyan, blue, magenta --- 6 equally-spaced hues
+  in OKLCH (L=0.7, C=0.15) for perceptual uniformity.
 - **Dependent variable**: binary left/right response parsed from VLM output.
 
 ## Licence
