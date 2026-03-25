@@ -5,6 +5,7 @@ from vlm_perception.analysis import (
     accuracy_by_side,
     depth_order_fisher_test,
     overall_accuracy,
+    prompt_effect,
     unparseable_count,
 )
 
@@ -84,6 +85,53 @@ def test_depth_order_fisher_test_significant():
     assert len(result) == 1
     assert result["model"][0] == "biased"
     assert result["p_value"][0] < 0.001
+
+
+def _make_prompt_df() -> pl.DataFrame:
+    """Two models, two prompts: one prompt helps, one doesn't."""
+    rows = []
+    for model in ["m1", "m2"]:
+        for prompt_id, accuracy in [("good", 0.9), ("bad", 0.5)]:
+            for i in range(20):
+                correct = i < int(20 * accuracy)
+                rows.append(
+                    {
+                        "model": model,
+                        "prompt_id": prompt_id,
+                        "crisp_on_top": True,
+                        "crisp_side": "left",
+                        "colour_crisp": "red",
+                        "colour_blurred": "blue",
+                        "correct_answer": "left",
+                        "parsed_answer": "left",
+                        "correct": correct,
+                    }
+                )
+    return pl.DataFrame(rows)
+
+
+def test_prompt_effect_significant():
+    chi2_results, wide = prompt_effect(_make_prompt_df())
+    assert "model" in chi2_results.columns
+    assert "chi2" in chi2_results.columns
+    assert "p_value" in chi2_results.columns
+    pooled = chi2_results.filter(pl.col("model") == "(pooled)")
+    assert len(pooled) == 1
+    assert pooled["p_value"][0] < 0.05
+
+
+def test_prompt_effect_wide_table():
+    _, wide = prompt_effect(_make_prompt_df())
+    assert "good" in wide.columns
+    assert "bad" in wide.columns
+    assert len(wide) == 2
+
+
+def test_prompt_effect_per_model_rows():
+    chi2_results, _ = prompt_effect(_make_prompt_df())
+    per_model = chi2_results.filter(pl.col("model") != "(pooled)")
+    assert len(per_model) == 2
+    assert set(per_model["model"].to_list()) == {"m1", "m2"}
 
 
 def test_depth_order_fisher_test_not_significant():

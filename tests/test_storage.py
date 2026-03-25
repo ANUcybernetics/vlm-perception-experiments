@@ -74,3 +74,13 @@ def test_append_accumulates(tmp_path):
     df = load_results(csv_path)
     assert len(df) == 2
     assert set(df["model"].to_list()) == {"test-model", "other-model"}
+
+
+def test_incremental_single_row_appends(tmp_path):
+    csv_path = tmp_path / "results.csv"
+    for i in range(5):
+        append_results([_make_result(model=f"model-{i}")], csv_path)
+
+    df = load_results(csv_path)
+    assert len(df) == 5
+    assert set(df["model"].to_list()) == {f"model-{i}" for i in range(5)}

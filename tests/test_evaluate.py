@@ -1,6 +1,12 @@
 import pytest
 
-from vlm_perception.evaluate import _parse_response, get_prompt, load_prompts
+from vlm_perception.evaluate import (
+    MAX_RETRIES,
+    RETRY_BASE_DELAY,
+    _parse_response,
+    get_prompt,
+    load_prompts,
+)
 from vlm_perception.models import Side
 
 
@@ -45,3 +51,8 @@ def test_get_prompt_returns_string():
 def test_get_prompt_unknown_raises():
     with pytest.raises(ValueError, match="Unknown prompt"):
         get_prompt("nonexistent")
+
+
+def test_retry_constants():
+    assert MAX_RETRIES >= 1
+    assert RETRY_BASE_DELAY > 0
