@@ -1,4 +1,13 @@
-from vlm_perception.models import Colour, Condition, Side, all_conditions
+import pytest
+
+from vlm_perception.models import (
+    MODEL_REGISTRY,
+    Colour,
+    Condition,
+    Side,
+    all_conditions,
+    resolve_model,
+)
 
 
 def test_colour_rgb_in_gamut():
@@ -52,3 +61,25 @@ def test_image_filename_format():
         colour_blurred=Colour.blue,
     )
     assert c.image_filename == "crisp-top_left_red_blue.png"
+
+
+def test_resolve_model_valid():
+    spec = resolve_model("claude-sonnet-4-6")
+    assert spec.provider == "anthropic"
+    assert spec.model_id == "claude-sonnet-4-6-20250415"
+
+
+def test_resolve_model_openai():
+    spec = resolve_model("gpt-5.4-mini")
+    assert spec.provider == "openai"
+    assert spec.model_id == "gpt-5.4-mini"
+
+
+def test_resolve_model_unknown():
+    with pytest.raises(ValueError, match="Unknown model"):
+        resolve_model("nonexistent-model")
+
+
+def test_model_registry_all_have_provider():
+    for name, spec in MODEL_REGISTRY.items():
+        assert spec.provider in ("anthropic", "openai"), f"{name} has invalid provider"

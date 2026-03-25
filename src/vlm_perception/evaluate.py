@@ -35,7 +35,7 @@ def _parse_response(text: str) -> Side | None:
 def evaluate_anthropic(
     image_path: Path,
     condition: Condition,
-    model: str = "claude-opus-4-6-20250415",
+    model: str = "claude-sonnet-4-6-20250415",
     prompt: str = PROMPT,
 ) -> TrialResult:
     client = anthropic.Anthropic()
@@ -78,7 +78,7 @@ def evaluate_anthropic(
 def evaluate_openai(
     image_path: Path,
     condition: Condition,
-    model: str = "gpt-4o",
+    model: str = "gpt-5.4",
     prompt: str = PROMPT,
 ) -> TrialResult:
     client = openai.OpenAI()

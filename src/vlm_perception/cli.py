@@ -2,10 +2,14 @@ from pathlib import Path
 
 import typer
 
+from vlm_perception.models import MODEL_REGISTRY
+
 app = typer.Typer(help="VLM perception experiment: crisp vs blurred circle occlusion.")
 
 DEFAULT_STIMULI_DIR = Path("stimuli")
 DEFAULT_RESULTS_PATH = Path("results/results.csv")
+
+AVAILABLE_MODELS = ", ".join(MODEL_REGISTRY)
 
 
 @app.command()
@@ -23,9 +27,8 @@ def generate(
 
 @app.command()
 def evaluate(
-    provider: str = typer.Option(..., help="API provider: anthropic or openai"),
     model: str = typer.Option(
-        ..., help="Model identifier (e.g. claude-opus-4-6-20250415, gpt-4o)"
+        ..., help=f"Model name. Available: {AVAILABLE_MODELS}"
     ),
     reps: int = typer.Option(1, help="Number of repetitions per condition"),
     stimuli_dir: Path = typer.Option(
@@ -34,16 +37,25 @@ def evaluate(
     results_path: Path = typer.Option(
         DEFAULT_RESULTS_PATH, help="CSV file for results"
     ),
+    limit: int = typer.Option(
+        0, help="Max conditions to evaluate (0 = all)"
+    ),
 ) -> None:
     """Run VLM evaluation on all stimulus images."""
     from vlm_perception.evaluate import evaluate as run_eval
-    from vlm_perception.models import all_conditions
+    from vlm_perception.models import all_conditions, resolve_model
     from vlm_perception.storage import append_results
 
+    spec = resolve_model(model)
     conditions = all_conditions()
+    if limit > 0:
+        conditions = conditions[:limit]
     total = len(conditions) * reps
     n = len(conditions)
-    typer.echo(f"Running {total} trials ({n} conditions x {reps} reps) with {model}")
+    typer.echo(
+        f"Running {total} trials ({n} conditions x {reps} reps) "
+        f"with {model} ({spec.provider}/{spec.model_id})"
+    )
 
     results = []
     for rep in range(reps):
@@ -54,7 +66,10 @@ def evaluate(
                 continue
             trial_num = rep * len(conditions) + i + 1
             typer.echo(f"  [{trial_num}/{total}] {condition.image_filename}")
-            result = run_eval(image_path, condition, provider=provider, model=model)
+            result = run_eval(
+                image_path, condition,
+                provider=spec.provider, model=spec.model_id,
+            )
             results.append(result)
             status = (
                 "correct"

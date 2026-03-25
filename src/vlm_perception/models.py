@@ -1,7 +1,31 @@
 from datetime import UTC, datetime
 from enum import StrEnum
+from typing import NamedTuple
 
 from pydantic import BaseModel
+
+
+class ModelSpec(NamedTuple):
+    provider: str
+    model_id: str
+
+
+MODEL_REGISTRY: dict[str, ModelSpec] = {
+    "claude-opus-4-6": ModelSpec("anthropic", "claude-opus-4-6-20250415"),
+    "claude-sonnet-4-6": ModelSpec("anthropic", "claude-sonnet-4-6-20250415"),
+    "claude-haiku-4-5": ModelSpec("anthropic", "claude-haiku-4-5-20251001"),
+    "gpt-5.4": ModelSpec("openai", "gpt-5.4"),
+    "gpt-5.4-mini": ModelSpec("openai", "gpt-5.4-mini"),
+    "gpt-5.4-nano": ModelSpec("openai", "gpt-5.4-nano"),
+}
+
+
+def resolve_model(name: str) -> ModelSpec:
+    if name in MODEL_REGISTRY:
+        return MODEL_REGISTRY[name]
+    raise ValueError(
+        f"Unknown model: {name!r}. Available: {', '.join(MODEL_REGISTRY)}"
+    )
 
 OKLCH_LIGHTNESS = 0.7
 OKLCH_CHROMA = 0.15

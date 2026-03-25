@@ -33,9 +33,11 @@ Produces 120 images (2 depth orders x 2 spatial positions x 6 x 5 colour pairs, 
 ### Run evaluation
 
 ```sh
-uv run vlm-perception evaluate --provider anthropic --model claude-opus-4-6-20250415 --reps 3
-uv run vlm-perception evaluate --provider openai --model gpt-4o --reps 3
+uv run vlm-perception evaluate --model claude-sonnet-4-6 --reps 3
+uv run vlm-perception evaluate --model gpt-5.4-mini --reps 3
 ```
+
+Available models: `claude-opus-4-6`, `claude-sonnet-4-6`, `claude-haiku-4-5`, `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano`. Use `--limit N` to evaluate only the first N conditions.
 
 Results are appended to `results/results.csv`.
 

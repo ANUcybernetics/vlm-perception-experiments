@@ -14,11 +14,13 @@ To run VLM evaluation, set the relevant API key and run:
 
 ```sh
 export ANTHROPIC_API_KEY="..."
-uv run vlm-perception evaluate --provider anthropic --model claude-opus-4-6-20250415 --reps 3
+uv run vlm-perception evaluate --model claude-sonnet-4-6 --reps 3
 
 export OPENAI_API_KEY="..."
-uv run vlm-perception evaluate --provider openai --model gpt-4o --reps 3
+uv run vlm-perception evaluate --model gpt-5.4-mini --reps 3
 ```
+
+Available models: `claude-opus-4-6`, `claude-sonnet-4-6`, `claude-haiku-4-5`, `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano`. Use `--limit N` to evaluate only the first N conditions.
 
 Results append to `results/results.csv`. Analyse with:
 
@@ -52,7 +54,7 @@ Each stimulus image shows two overlapping circles on a mid-grey background. One 
 ## Project structure
 
 - `src/vlm_perception/` --- main package
-  - `models.py` --- pydantic models (Colour, Side, Condition, TrialResult) and `all_conditions()` factorial generator
+  - `models.py` --- pydantic models (Colour, Side, Condition, TrialResult), `MODEL_REGISTRY` for supported VLMs, and `all_conditions()` factorial generator
   - `stimuli.py` --- Pillow-based stimulus image generation
   - `evaluate.py` --- VLM API dispatch (Anthropic, OpenAI) with JSON/freetext response parsing
   - `storage.py` --- CSV append/load via polars
