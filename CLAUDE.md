@@ -26,7 +26,7 @@ Available models: `claude-opus-4-6`, `claude-sonnet-4-6`, `claude-haiku-4-5`,
 `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano`. Use `--limit N` to evaluate only the
 first N conditions. Use `--prompt <id>` to select a prompt variant (default:
 `neutral`). Available prompts: `neutral`, `minimal`, `foreground`,
-`psychophysics`. Prompt definitions are in `src/vlm_perception/prompts.json`.
+`psychophysics`, `cot`. Prompt definitions are in `src/vlm_perception/prompts.json`.
 
 Approximate evaluation time for 360 trials (120 conditions x 3 reps), median per
 trial:
