@@ -26,7 +26,7 @@ Available models: `claude-opus-4-6`, `claude-sonnet-4-6`, `claude-haiku-4-5`,
 `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano`. Use `--limit N` to evaluate only the
 first N conditions. Use `--prompt <id>` to select a prompt variant (default:
 `neutral`). Available prompts: `neutral`, `minimal`, `foreground`,
-`psychophysics`, `cot`. Prompt definitions are in `src/vlm_perception/prompts.json`.
+`psychophysics`, `cot`, `thinking`. Prompt definitions are in `src/vlm_perception/prompts.json`.
 
 Approximate evaluation time for 360 trials (120 conditions x 3 reps), median per
 trial:
@@ -72,6 +72,19 @@ is: which circle is in front (occluding the other)?
 - blur: Gaussian radius 20px
 - colours: 6 OKLCH hues at L=0.7, C=0.15 (red, yellow, green, cyan, blue,
   magenta)
+
+### Prompt variants
+
+- **neutral** --- describes the image and asks which circle is in front
+- **minimal** --- bare question with no framing
+- **foreground** --- uses explicit foreground/background terminology
+- **psychophysics** --- experimental framing mentioning sharpness and blur
+- **cot** --- chain-of-thought: asks the model to reason step by step about edge
+  continuity in the overlap region before answering
+- **thinking** --- uses the same text as `neutral` but enables provider-level
+  reasoning tokens (Anthropic extended thinking / OpenAI `reasoning_effort`).
+  For Anthropic, Opus uses adaptive thinking; Sonnet and Haiku use a 4096-token
+  budget. For OpenAI, `reasoning_effort="medium"` is set.
 
 ## Project structure
 

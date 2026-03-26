@@ -40,12 +40,27 @@ excluding same-colour) in `stimuli/`.
 
 ```sh
 uv run vlm-perception evaluate --model claude-sonnet-4-6 --reps 3
-uv run vlm-perception evaluate --model gpt-5.4-mini --reps 3
+uv run vlm-perception evaluate --model gpt-5.4-mini --reps 3 --prompt minimal
+uv run vlm-perception evaluate --model claude-sonnet-4-6 --reps 3 --prompt thinking
 ```
 
 Available models: `claude-opus-4-6`, `claude-sonnet-4-6`, `claude-haiku-4-5`,
 `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano`. Use `--limit N` to evaluate only the
-first N conditions.
+first N conditions. Use `--prompt <id>` to select a prompt variant (default:
+`neutral`).
+
+### Prompt variants
+
+- **neutral** (default) --- describes the image and asks which circle is in front
+- **minimal** --- bare question with no framing
+- **foreground** --- uses explicit foreground/background terminology
+- **psychophysics** --- experimental framing mentioning sharpness and blur
+- **cot** --- chain-of-thought: asks the model to reason step by step about edge
+  continuity in the overlap region before answering
+- **thinking** --- same text as `neutral` but enables provider-level reasoning
+  tokens (Anthropic extended thinking / OpenAI `reasoning_effort="medium"`)
+
+Prompt definitions are in `src/vlm_perception/prompts.json`.
 
 Results are appended to `results/results.csv`.
 
@@ -61,7 +76,7 @@ spatial position, and colour pair.
 ## Experimental design
 
 - **Stimuli**: two overlapping circles on a mid-grey (128, 128, 128) background,
-  one crisp and one Gaussian-blurred (radius 8px). Circles are 100px radius with
+  one crisp and one Gaussian-blurred (radius 20px). Circles are 100px radius with
   75px horizontal offset between centres (~25% overlap).
 - **Conditions**: 2 (depth order) x 2 (crisp on left/right) x 6 x 5 (colour
   pairs from 6 equidistant hues, excluding same-colour) = 120 conditions.

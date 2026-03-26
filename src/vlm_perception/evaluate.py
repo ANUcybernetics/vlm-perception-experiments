@@ -47,6 +47,15 @@ def _parse_response(text: str) -> Side | None:
     return None
 
 
+THINKING_PROMPT_ID = "thinking"
+
+
+def _anthropic_thinking_kwargs(model: str) -> dict:
+    if model == "claude-opus-4-6":
+        return {"thinking": {"type": "adaptive"}, "max_tokens": 16000}
+    return {"thinking": {"type": "enabled", "budget_tokens": 4096}, "max_tokens": 8192}
+
+
 def evaluate_anthropic(
     image_path: Path,
     condition: Condition,
@@ -56,11 +65,14 @@ def evaluate_anthropic(
     prompt = get_prompt(prompt_id)
     client = anthropic.Anthropic()
     b64 = _encode_image(image_path)
+    if prompt_id == THINKING_PROMPT_ID:
+        api_kwargs = _anthropic_thinking_kwargs(model)
+    else:
+        api_kwargs = {"max_tokens": 1024}
     for attempt in range(MAX_RETRIES):
         try:
             response = client.messages.create(
                 model=model,
-                max_tokens=1024,
                 messages=[
                     {
                         "role": "user",
@@ -77,6 +89,7 @@ def evaluate_anthropic(
                         ],
                     }
                 ],
+                **api_kwargs,
             )
             break
         except anthropic.InternalServerError:
@@ -85,8 +98,11 @@ def evaluate_anthropic(
             delay = RETRY_BASE_DELAY * (2 ** attempt)
             log.warning("Anthropic 500 error, retrying in %.1fs (attempt %d/%d)", delay, attempt + 1, MAX_RETRIES)
             time.sleep(delay)
-    block = response.content[0]
-    raw: str = block.text if isinstance(block, anthropic.types.TextBlock) else ""
+    raw = ""
+    for block in response.content:
+        if isinstance(block, anthropic.types.TextBlock):
+            raw = block.text
+            break
     parsed = _parse_response(raw)
     correct = parsed == condition.correct_answer if parsed else None
     return TrialResult(
@@ -110,11 +126,16 @@ def evaluate_openai(
     prompt = get_prompt(prompt_id)
     client = openai.OpenAI()
     b64 = _encode_image(image_path)
+    extra: dict = {}
+    if prompt_id == THINKING_PROMPT_ID:
+        extra["reasoning_effort"] = "medium"
+        extra["max_completion_tokens"] = 4096
+    else:
+        extra["max_completion_tokens"] = 1024
     for attempt in range(MAX_RETRIES):
         try:
             response = client.chat.completions.create(
                 model=model,
-                max_completion_tokens=1024,
                 messages=[
                     {
                         "role": "user",
@@ -127,6 +148,7 @@ def evaluate_openai(
                         ],
                     }
                 ],
+                **extra,
             )
             break
         except (openai.InternalServerError, openai.APIStatusError) as exc:
