@@ -1,0 +1,98 @@
+[
+  {
+    "model": "claude-sonnet-4-6",
+    "condition": {
+      "crisp_on_top": true,
+      "crisp_side": "left",
+      "colour_crisp": "red",
+      "colour_blurred": "blue",
+      "correct_answer": "left"
+    },
+    "thinking": "The left circle (red/salmon colored) is clearly in front of the right circle (blue), as it occludes part of the blue circle.",
+    "answer": "{\"answer\": \"left\"}"
+  },
+  {
+    "model": "claude-sonnet-4-6",
+    "condition": {
+      "crisp_on_top": true,
+      "crisp_side": "right",
+      "colour_crisp": "green",
+      "colour_blurred": "yellow",
+      "correct_answer": "right"
+    },
+    "thinking": "The green circle on the right is clearly in front, as it occludes the yellow/orange circle on the left.",
+    "answer": "{\"answer\": \"right\"}"
+  },
+  {
+    "model": "claude-sonnet-4-6",
+    "condition": {
+      "crisp_on_top": false,
+      "crisp_side": "left",
+      "colour_crisp": "cyan",
+      "colour_blurred": "magenta",
+      "correct_answer": "right"
+    },
+    "thinking": "Looking at the image, I need to determine which circle is in front of the other.\n\nThe left circle is cyan/blue and appears solid and opaque. The right circle is pink/magenta and appears more diffuse/soft.\n\nWhere they overlap, the cyan circle appears to be on top of the pink circle - the cyan color is clearly visible in the overlap region, while the pink circle appears to be behind it.\n\nThe left (cyan) circle is in front.",
+    "answer": "{\"answer\": \"left\"}"
+  },
+  {
+    "model": "claude-sonnet-4-6",
+    "condition": {
+      "crisp_on_top": false,
+      "crisp_side": "right",
+      "colour_crisp": "blue",
+      "colour_blurred": "red",
+      "correct_answer": "left"
+    },
+    "thinking": "Looking at the image, I need to determine which circle is in front of the other.\n\nThe right circle (blue) appears to be in front of the left circle (red/orange). The blue circle's edge is clean and sharp where it overlaps with the red circle, while the red circle appears to be behind the blue one - the red circle's right portion is hidden behind the blue circle.\n\nThe blue circle on the right is occluding the red circle on the left, meaning the right circle is in front.",
+    "answer": "{\"answer\": \"right\"}"
+  },
+  {
+    "model": "claude-opus-4-6",
+    "condition": {
+      "crisp_on_top": true,
+      "crisp_side": "left",
+      "colour_crisp": "red",
+      "colour_blurred": "blue",
+      "correct_answer": "left"
+    },
+    "thinking": "",
+    "answer": "\n\n{\"answer\": \"left\"}"
+  },
+  {
+    "model": "claude-opus-4-6",
+    "condition": {
+      "crisp_on_top": true,
+      "crisp_side": "right",
+      "colour_crisp": "green",
+      "colour_blurred": "yellow",
+      "correct_answer": "right"
+    },
+    "thinking": "",
+    "answer": "\n\n{\"answer\": \"right\"}"
+  },
+  {
+    "model": "claude-opus-4-6",
+    "condition": {
+      "crisp_on_top": false,
+      "crisp_side": "left",
+      "colour_crisp": "cyan",
+      "colour_blurred": "magenta",
+      "correct_answer": "right"
+    },
+    "thinking": "",
+    "answer": "\n\n{\"answer\": \"left\"}"
+  },
+  {
+    "model": "claude-opus-4-6",
+    "condition": {
+      "crisp_on_top": false,
+      "crisp_side": "right",
+      "colour_crisp": "blue",
+      "colour_blurred": "red",
+      "correct_answer": "left"
+    },
+    "thinking": "",
+    "answer": "\n\n{\"answer\": \"right\"}"
+  }
+]
