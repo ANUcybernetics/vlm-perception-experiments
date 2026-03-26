@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import json
 import logging
@@ -56,53 +57,62 @@ def _anthropic_thinking_kwargs(model: str) -> dict:
     return {"thinking": {"type": "enabled", "budget_tokens": 4096}, "max_tokens": 8192}
 
 
-def evaluate_anthropic(
-    image_path: Path,
-    condition: Condition,
-    model: str = "claude-sonnet-4-6",
-    prompt_id: str = DEFAULT_PROMPT_ID,
-) -> TrialResult:
-    prompt = get_prompt(prompt_id)
-    client = anthropic.Anthropic()
-    b64 = _encode_image(image_path)
+def _build_anthropic_request(b64: str, prompt: str, prompt_id: str, model: str) -> dict:
+    api_kwargs: dict = {}
     if prompt_id == THINKING_PROMPT_ID:
         api_kwargs = _anthropic_thinking_kwargs(model)
     else:
         api_kwargs = {"max_tokens": 1024}
-    for attempt in range(MAX_RETRIES):
-        try:
-            response = client.messages.create(
-                model=model,
-                messages=[
+    return {
+        "model": model,
+        "messages": [
+            {
+                "role": "user",
+                "content": [
                     {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "image",
-                                "source": {
-                                    "type": "base64",
-                                    "media_type": "image/png",
-                                    "data": b64,
-                                },
-                            },
-                            {"type": "text", "text": prompt},
-                        ],
-                    }
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": "image/png",
+                            "data": b64,
+                        },
+                    },
+                    {"type": "text", "text": prompt},
                 ],
-                **api_kwargs,
-            )
-            break
-        except anthropic.InternalServerError:
-            if attempt == MAX_RETRIES - 1:
-                raise
-            delay = RETRY_BASE_DELAY * (2 ** attempt)
-            log.warning("Anthropic 500 error, retrying in %.1fs (attempt %d/%d)", delay, attempt + 1, MAX_RETRIES)
-            time.sleep(delay)
-    raw = ""
-    for block in response.content:
-        if isinstance(block, anthropic.types.TextBlock):
-            raw = block.text
-            break
+            }
+        ],
+        **api_kwargs,
+    }
+
+
+def _build_openai_request(b64: str, prompt: str, prompt_id: str, model: str) -> dict:
+    extra: dict = {}
+    if prompt_id == THINKING_PROMPT_ID:
+        extra["reasoning_effort"] = "medium"
+        extra["max_completion_tokens"] = 4096
+    else:
+        extra["max_completion_tokens"] = 1024
+    return {
+        "model": model,
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/png;base64,{b64}"},
+                    },
+                    {"type": "text", "text": prompt},
+                ],
+            }
+        ],
+        **extra,
+    }
+
+
+def _make_trial_result(
+    raw: str, condition: Condition, model: str, prompt_id: str, prompt: str
+) -> TrialResult:
     parsed = _parse_response(raw)
     correct = parsed == condition.correct_answer if parsed else None
     return TrialResult(
@@ -115,6 +125,39 @@ def evaluate_anthropic(
         correct=correct,
         timestamp=TrialResult.now(),
     )
+
+
+def evaluate_anthropic(
+    image_path: Path,
+    condition: Condition,
+    model: str = "claude-sonnet-4-6",
+    prompt_id: str = DEFAULT_PROMPT_ID,
+) -> TrialResult:
+    prompt = get_prompt(prompt_id)
+    client = anthropic.Anthropic()
+    b64 = _encode_image(image_path)
+    request = _build_anthropic_request(b64, prompt, prompt_id, model)
+    for attempt in range(MAX_RETRIES):
+        try:
+            response = client.messages.create(**request)
+            break
+        except anthropic.InternalServerError:
+            if attempt == MAX_RETRIES - 1:
+                raise
+            delay = RETRY_BASE_DELAY * (2**attempt)
+            log.warning(
+                "Anthropic 500 error, retrying in %.1fs (attempt %d/%d)",
+                delay,
+                attempt + 1,
+                MAX_RETRIES,
+            )
+            time.sleep(delay)
+    raw = ""
+    for block in response.content:
+        if isinstance(block, anthropic.types.TextBlock):
+            raw = block.text
+            break
+    return _make_trial_result(raw, condition, model, prompt_id, prompt)
 
 
 def evaluate_openai(
@@ -126,52 +169,114 @@ def evaluate_openai(
     prompt = get_prompt(prompt_id)
     client = openai.OpenAI()
     b64 = _encode_image(image_path)
-    extra: dict = {}
-    if prompt_id == THINKING_PROMPT_ID:
-        extra["reasoning_effort"] = "medium"
-        extra["max_completion_tokens"] = 4096
-    else:
-        extra["max_completion_tokens"] = 1024
+    request = _build_openai_request(b64, prompt, prompt_id, model)
     for attempt in range(MAX_RETRIES):
         try:
-            response = client.chat.completions.create(
-                model=model,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "image_url",
-                                "image_url": {"url": f"data:image/png;base64,{b64}"},
-                            },
-                            {"type": "text", "text": prompt},
-                        ],
-                    }
-                ],
-                **extra,
-            )
+            response = client.chat.completions.create(**request)
             break
         except (openai.InternalServerError, openai.APIStatusError) as exc:
             if isinstance(exc, openai.APIStatusError) and exc.status_code < 500:
                 raise
             if attempt == MAX_RETRIES - 1:
                 raise
-            delay = RETRY_BASE_DELAY * (2 ** attempt)
-            log.warning("OpenAI server error, retrying in %.1fs (attempt %d/%d)", delay, attempt + 1, MAX_RETRIES)
+            delay = RETRY_BASE_DELAY * (2**attempt)
+            log.warning(
+                "OpenAI server error, retrying in %.1fs (attempt %d/%d)",
+                delay,
+                attempt + 1,
+                MAX_RETRIES,
+            )
             time.sleep(delay)
     raw = response.choices[0].message.content or ""
-    parsed = _parse_response(raw)
-    correct = parsed == condition.correct_answer if parsed else None
-    return TrialResult(
-        condition=condition,
-        model=model,
-        prompt_id=prompt_id,
-        prompt=prompt,
-        raw_response=raw,
-        parsed_answer=parsed,
-        correct=correct,
-        timestamp=TrialResult.now(),
-    )
+    return _make_trial_result(raw, condition, model, prompt_id, prompt)
+
+
+async def async_evaluate_anthropic(
+    image_path: Path,
+    condition: Condition,
+    model: str,
+    prompt_id: str,
+    semaphore: asyncio.Semaphore,
+) -> TrialResult:
+    prompt = get_prompt(prompt_id)
+    b64 = _encode_image(image_path)
+    request = _build_anthropic_request(b64, prompt, prompt_id, model)
+    client = anthropic.AsyncAnthropic()
+    async with semaphore:
+        for attempt in range(MAX_RETRIES):
+            try:
+                response = await client.messages.create(**request)
+                break
+            except anthropic.InternalServerError:
+                if attempt == MAX_RETRIES - 1:
+                    raise
+                delay = RETRY_BASE_DELAY * (2**attempt)
+                log.warning(
+                    "Anthropic 500 error, retrying in %.1fs (attempt %d/%d)",
+                    delay,
+                    attempt + 1,
+                    MAX_RETRIES,
+                )
+                await asyncio.sleep(delay)
+    raw = ""
+    for block in response.content:
+        if isinstance(block, anthropic.types.TextBlock):
+            raw = block.text
+            break
+    return _make_trial_result(raw, condition, model, prompt_id, prompt)
+
+
+async def async_evaluate_openai(
+    image_path: Path,
+    condition: Condition,
+    model: str,
+    prompt_id: str,
+    semaphore: asyncio.Semaphore,
+) -> TrialResult:
+    prompt = get_prompt(prompt_id)
+    b64 = _encode_image(image_path)
+    request = _build_openai_request(b64, prompt, prompt_id, model)
+    client = openai.AsyncOpenAI()
+    async with semaphore:
+        for attempt in range(MAX_RETRIES):
+            try:
+                response = await client.chat.completions.create(**request)
+                break
+            except (openai.InternalServerError, openai.APIStatusError) as exc:
+                if isinstance(exc, openai.APIStatusError) and exc.status_code < 500:
+                    raise
+                if attempt == MAX_RETRIES - 1:
+                    raise
+                delay = RETRY_BASE_DELAY * (2**attempt)
+                log.warning(
+                    "OpenAI server error, retrying in %.1fs (attempt %d/%d)",
+                    delay,
+                    attempt + 1,
+                    MAX_RETRIES,
+                )
+                await asyncio.sleep(delay)
+    raw = response.choices[0].message.content or ""
+    return _make_trial_result(raw, condition, model, prompt_id, prompt)
+
+
+async def async_evaluate(
+    image_path: Path,
+    condition: Condition,
+    provider: str,
+    model: str,
+    prompt_id: str,
+    semaphore: asyncio.Semaphore,
+) -> TrialResult:
+    if provider == "anthropic":
+        return await async_evaluate_anthropic(
+            image_path, condition, model, prompt_id, semaphore
+        )
+    elif provider == "openai":
+        return await async_evaluate_openai(
+            image_path, condition, model, prompt_id, semaphore
+        )
+    else:
+        raise ValueError(f"Unknown provider: {provider}")
 
 
 def evaluate(
@@ -182,7 +287,9 @@ def evaluate(
     prompt_id: str = DEFAULT_PROMPT_ID,
 ) -> TrialResult:
     if provider == "anthropic":
-        return evaluate_anthropic(image_path, condition, model=model, prompt_id=prompt_id)
+        return evaluate_anthropic(
+            image_path, condition, model=model, prompt_id=prompt_id
+        )
     elif provider == "openai":
         return evaluate_openai(image_path, condition, model=model, prompt_id=prompt_id)
     else:

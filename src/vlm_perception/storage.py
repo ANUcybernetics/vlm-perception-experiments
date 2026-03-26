@@ -1,3 +1,5 @@
+import asyncio
+import json
 from pathlib import Path
 
 import polars as pl
@@ -38,20 +40,20 @@ def result_to_row(result: TrialResult) -> dict:
 
 
 def append_results(results: list[TrialResult], path: Path) -> None:
-    import io
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "a") as f:
+        for result in results:
+            f.write(json.dumps(result_to_row(result)) + "\n")
 
-    rows = [result_to_row(r) for r in results]
-    new_df = pl.DataFrame(rows, schema={col: pl.Utf8 for col in COLUMNS})
-    file_exists = path.exists() and path.stat().st_size > 0
-    if not file_exists:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        new_df.write_csv(path)
-    else:
-        buf = io.StringIO()
-        new_df.write_csv(buf, include_header=False)
+
+async def async_append_result(
+    result: TrialResult, path: Path, lock: asyncio.Lock
+) -> None:
+    line = json.dumps(result_to_row(result)) + "\n"
+    async with lock:
         with open(path, "a") as f:
-            f.write(buf.getvalue())
+            f.write(line)
 
 
 def load_results(path: Path) -> pl.DataFrame:
-    return pl.read_csv(path)
+    return pl.read_ndjson(path)

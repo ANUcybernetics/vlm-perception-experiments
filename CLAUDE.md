@@ -15,17 +15,27 @@ To run VLM evaluation, set the relevant API key and run:
 
 ```sh
 export ANTHROPIC_API_KEY="..."
+export OPENAI_API_KEY="..."
 uv run vlm-perception evaluate --model claude-sonnet-4-6 --reps 3
 uv run vlm-perception evaluate --model claude-sonnet-4-6 --reps 3 --prompt minimal
-
-export OPENAI_API_KEY="..."
 uv run vlm-perception evaluate --model gpt-5.4-mini --reps 3
+```
+
+Multiple models and/or prompts can be specified in a single run --- they execute
+concurrently via asyncio with per-provider rate limiting:
+
+```sh
+uv run vlm-perception evaluate \
+  --model claude-sonnet-4-6 --model gpt-5.4-mini \
+  --prompt neutral --prompt cot \
+  --reps 3
 ```
 
 Available models: `claude-opus-4-6`, `claude-sonnet-4-6`, `claude-haiku-4-5`,
 `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano`. Use `--limit N` to evaluate only the
 first N conditions. Use `--prompt <id>` to select a prompt variant (default:
-`neutral`). Available prompts: `neutral`, `minimal`, `foreground`,
+`neutral`). Use `--concurrency N` to set max concurrent requests per provider
+(default: 10). Available prompts: `neutral`, `minimal`, `foreground`,
 `psychophysics`, `cot`, `thinking`. Prompt definitions are in `src/vlm_perception/prompts.json`.
 
 Approximate evaluation time for 360 trials (120 conditions x 3 reps), median per
@@ -40,7 +50,7 @@ trial:
 | gpt-5.4-mini      | ~0.9s     | ~5min      |
 | gpt-5.4-nano      | ~0.7s     | ~4min      |
 
-Results append to `results/results.csv`. Analyse with:
+Results append to `results/results.jsonl`. Analyse with:
 
 ```sh
 uv run vlm-perception analyse
@@ -94,18 +104,18 @@ is: which circle is in front (occluding the other)?
     generator
   - `stimuli.py` --- Pillow-based stimulus image generation
   - `prompts.json` --- prompt registry mapping IDs to full prompt text
-  - `evaluate.py` --- VLM API dispatch (Anthropic, OpenAI) with JSON/freetext
-    response parsing
-  - `storage.py` --- CSV append/load via polars
+  - `evaluate.py` --- sync and async VLM API dispatch (Anthropic, OpenAI) with
+    JSON/freetext response parsing and per-provider semaphore rate limiting
+  - `storage.py` --- JSONL append/load via polars, with async support
   - `analysis.py` --- accuracy breakdowns by model, layout, side, colour pair
   - `cli.py` --- typer CLI with `generate`, `evaluate`, `analyse` subcommands
 - `tests/` --- pytest tests
 
-## Results CSV schema
+## Results JSONL schema
 
-Each row is one trial: `model`, `prompt_id`, `crisp_on_top`, `crisp_side`,
-`colour_crisp`, `colour_blurred`, `correct_answer`, `parsed_answer`, `correct`,
-`prompt`, `raw_response`, `timestamp`.
+Each line is a JSON object with fields: `model`, `prompt_id`, `crisp_on_top`,
+`crisp_side`, `colour_crisp`, `colour_blurred`, `correct_answer`,
+`parsed_answer`, `correct`, `prompt`, `raw_response`, `timestamp`.
 
 ## Conventions
 

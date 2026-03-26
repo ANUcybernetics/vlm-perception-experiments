@@ -44,10 +44,21 @@ uv run vlm-perception evaluate --model gpt-5.4-mini --reps 3 --prompt minimal
 uv run vlm-perception evaluate --model claude-sonnet-4-6 --reps 3 --prompt thinking
 ```
 
+Multiple models and prompts can be specified in a single run --- they execute
+concurrently via asyncio with per-provider rate limiting:
+
+```sh
+uv run vlm-perception evaluate \
+  --model claude-sonnet-4-6 --model gpt-5.4-mini \
+  --prompt neutral --prompt cot \
+  --reps 3
+```
+
 Available models: `claude-opus-4-6`, `claude-sonnet-4-6`, `claude-haiku-4-5`,
 `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano`. Use `--limit N` to evaluate only the
 first N conditions. Use `--prompt <id>` to select a prompt variant (default:
-`neutral`).
+`neutral`). Use `--concurrency N` to set the max concurrent requests per provider
+(default: 10).
 
 ### Prompt variants
 
@@ -62,7 +73,7 @@ first N conditions. Use `--prompt <id>` to select a prompt variant (default:
 
 Prompt definitions are in `src/vlm_perception/prompts.json`.
 
-Results are appended to `results/results.csv`.
+Results are appended to `results/results.jsonl`.
 
 ### Analyse results
 
