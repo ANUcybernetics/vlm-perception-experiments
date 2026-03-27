@@ -86,6 +86,14 @@ Prompt definitions are in `src/vlm_perception/prompts.json`.
 
 Results are appended to `results/results.jsonl`.
 
+### Plot figures
+
+```sh
+uv run vlm-perception plot --results-path results/results.jsonl
+```
+
+Generates dose-response and prompt invariance charts as PDF, PNG, and SVG.
+
 ### Analyse results
 
 ```sh

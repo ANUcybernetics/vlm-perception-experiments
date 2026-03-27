@@ -115,7 +115,10 @@ significant effects of colour pair or spatial position:
   - `analysis.py` --- paper-quality statistical analysis with Fisher exact,
     Cochran-Armitage trend, chi-square, Holm-Bonferroni pairwise comparisons,
     and summary table. Handles blur=20 imbalance via balanced sweep subset.
-  - `cli.py` --- typer CLI with `generate`, `evaluate`, `analyse` subcommands
+  - `plotting.py` --- Altair-based figure generation (dose-response curves,
+    prompt invariance charts) with PDF/PNG/SVG export
+  - `cli.py` --- typer CLI with `generate`, `evaluate`, `analyse`, `plot`
+    subcommands
 - `tests/` --- pytest tests
 
 ## Results JSONL schema

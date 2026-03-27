@@ -167,7 +167,7 @@ def all_conditions(blur_radius: int = DEFAULT_BLUR_RADIUS) -> list[Condition]:
 def blur_sweep_conditions() -> list[Condition]:
     """Reduced factorial for blur radius sweep.
 
-    2 (depth) x 2 (side) x 4 colour pairs x 5 blur levels = 80 conditions.
+    2 (depth) x 2 (side) x 4 colour pairs x 6 blur levels = 96 conditions.
     Colour pairs are chosen to span the hue wheel (complementary pairs).
     """
     conditions = []
