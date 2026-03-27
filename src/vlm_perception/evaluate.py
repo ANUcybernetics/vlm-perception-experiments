@@ -53,7 +53,7 @@ THINKING_PROMPT_ID = "thinking"
 
 def _anthropic_thinking_kwargs(model: str) -> dict:
     if model == "claude-opus-4-6":
-        return {"thinking": {"type": "adaptive"}, "max_tokens": 16000}
+        return {"thinking": {"type": "enabled", "budget_tokens": 10000}, "max_tokens": 16000}
     return {"thinking": {"type": "enabled", "budget_tokens": 4096}, "max_tokens": 8192}
 
 
@@ -108,6 +108,45 @@ def _build_openai_request(b64: str, prompt: str, prompt_id: str, model: str) -> 
         ],
         **extra,
     }
+
+
+def _build_openai_responses_request(b64: str, prompt: str, model: str) -> dict:
+    return {
+        "model": model,
+        "input": [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "input_image",
+                        "image_url": f"data:image/png;base64,{b64}",
+                    },
+                    {"type": "input_text", "text": prompt},
+                ],
+            }
+        ],
+        "reasoning": {"effort": "medium", "summary": "auto"},
+        "max_output_tokens": 16384,
+    }
+
+
+def _extract_openai_responses_output(
+    response: "openai.types.responses.Response",
+) -> tuple[str, str | None]:
+    from openai.types.responses import ResponseOutputMessage, ResponseReasoningItem
+
+    raw = ""
+    reasoning_parts: list[str] = []
+    for item in response.output:
+        if isinstance(item, ResponseReasoningItem):
+            for summary in item.summary:
+                reasoning_parts.append(summary.text)
+        elif isinstance(item, ResponseOutputMessage):
+            for block in item.content:
+                if block.type == "output_text":
+                    raw = block.text
+    reasoning = "\n".join(reasoning_parts) if reasoning_parts else None
+    return raw, reasoning
 
 
 def _extract_anthropic_response(
@@ -187,10 +226,17 @@ def evaluate_openai(
     prompt = get_prompt(prompt_id)
     client = openai.OpenAI()
     b64 = _encode_image(image_path)
-    request = _build_openai_request(b64, prompt, prompt_id, model)
+    use_responses = prompt_id == THINKING_PROMPT_ID
+    if use_responses:
+        request = _build_openai_responses_request(b64, prompt, model)
+    else:
+        request = _build_openai_request(b64, prompt, prompt_id, model)
     for attempt in range(MAX_RETRIES):
         try:
-            response = client.chat.completions.create(**request)
+            if use_responses:
+                response = client.responses.create(**request)
+            else:
+                response = client.chat.completions.create(**request)
             break
         except (openai.InternalServerError, openai.APIStatusError) as exc:
             if isinstance(exc, openai.APIStatusError) and exc.status_code < 500:
@@ -205,8 +251,14 @@ def evaluate_openai(
                 MAX_RETRIES,
             )
             time.sleep(delay)
-    raw = response.choices[0].message.content or ""
-    return _make_trial_result(raw, condition, model, prompt_id, prompt)
+    if use_responses:
+        raw, reasoning = _extract_openai_responses_output(response)
+    else:
+        raw = response.choices[0].message.content or ""
+        reasoning = None
+    return _make_trial_result(
+        raw, condition, model, prompt_id, prompt, reasoning_trace=reasoning
+    )
 
 
 async def async_evaluate_anthropic(
@@ -252,12 +304,19 @@ async def async_evaluate_openai(
 ) -> TrialResult:
     prompt = get_prompt(prompt_id)
     b64 = _encode_image(image_path)
-    request = _build_openai_request(b64, prompt, prompt_id, model)
+    use_responses = prompt_id == THINKING_PROMPT_ID
+    if use_responses:
+        request = _build_openai_responses_request(b64, prompt, model)
+    else:
+        request = _build_openai_request(b64, prompt, prompt_id, model)
     client = openai.AsyncOpenAI()
     async with semaphore:
         for attempt in range(MAX_RETRIES):
             try:
-                response = await client.chat.completions.create(**request)
+                if use_responses:
+                    response = await client.responses.create(**request)
+                else:
+                    response = await client.chat.completions.create(**request)
                 break
             except (openai.InternalServerError, openai.APIStatusError) as exc:
                 if isinstance(exc, openai.APIStatusError) and exc.status_code < 500:
@@ -272,8 +331,14 @@ async def async_evaluate_openai(
                     MAX_RETRIES,
                 )
                 await asyncio.sleep(delay)
-    raw = response.choices[0].message.content or ""
-    return _make_trial_result(raw, condition, model, prompt_id, prompt)
+    if use_responses:
+        raw, reasoning = _extract_openai_responses_output(response)
+    else:
+        raw = response.choices[0].message.content or ""
+        reasoning = None
+    return _make_trial_result(
+        raw, condition, model, prompt_id, prompt, reasoning_trace=reasoning
+    )
 
 
 async def async_evaluate(
