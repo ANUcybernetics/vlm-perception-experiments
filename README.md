@@ -35,8 +35,9 @@ uv run vlm-perception generate --blur-sweep   # blur sweep (80 images, 5 blur le
 ```
 
 The full factorial produces 120 images at the default blur radius (20px). The
-blur sweep produces 80 images across 5 blur levels (4, 8, 12, 16, 20px) with a
-reduced set of 4 colour pairs.
+blur sweep produces 96 images across 6 blur levels (0, 4, 8, 12, 16, 20px)
+with a reduced set of 4 colour pairs. The 0px level (no blur) serves as a
+baseline where models have no blur cue.
 
 ### Run evaluation
 
@@ -118,7 +119,7 @@ A preliminary full-factorial study showed no significant effects of colour pair
 or spatial position. The blur sweep therefore uses a reduced design to
 efficiently test the effect of blur strength:
 
-- **blur radius** (5): 4, 8, 12, 16, 20px
+- **blur radius** (6): 0, 4, 8, 12, 16, 20px
 - **depth order** (2): crisp on top, blurred on top
 - **spatial position** (2): crisp circle on left, crisp circle on right
 - **colour pairs** (4): red/cyan, yellow/blue, green/magenta, cyan/red ---

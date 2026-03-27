@@ -91,7 +91,7 @@ is: which circle is in front (occluding the other)?
 Reduced design motivated by preliminary full-factorial results showing no
 significant effects of colour pair or spatial position:
 
-- **blur radius** (5): 4, 8, 12, 16, 20px
+- **blur radius** (6): 0, 4, 8, 12, 16, 20px (0 = no blur baseline)
 - **depth order** (2): crisp on top, blurred on top
 - **spatial position** (2): crisp circle on left, crisp circle on right
 - **colour pairs** (4): red/cyan, yellow/blue, green/magenta, cyan/red

@@ -86,7 +86,7 @@ def test_blur_sweep_conditions_count():
         * len(BLUR_SWEEP_COLOUR_PAIRS)
     )
     assert len(conditions) == expected
-    assert len(conditions) == 80
+    assert len(conditions) == 96
 
 
 def test_blur_sweep_conditions_blur_values():

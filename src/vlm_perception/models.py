@@ -91,7 +91,7 @@ class Side(StrEnum):
 
 
 DEFAULT_BLUR_RADIUS = 20
-BLUR_SWEEP_RADII = [4, 8, 12, 16, 20]
+BLUR_SWEEP_RADII = [0, 4, 8, 12, 16, 20]
 BLUR_SWEEP_COLOUR_PAIRS: list[tuple[Colour, Colour]] = [
     (Colour.red, Colour.cyan),
     (Colour.yellow, Colour.blue),
