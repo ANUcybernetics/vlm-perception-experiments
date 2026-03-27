@@ -26,6 +26,17 @@ MODEL_LABELS = {
 
 DEPTH_LABELS = {True: "Crisp on top", False: "Blurred on top"}
 
+PROMPT_ORDER = ["neutral", "minimal", "foreground", "psychophysics", "cot", "thinking"]
+
+PROMPT_LABELS = {
+    "neutral": "Neutral",
+    "minimal": "Minimal",
+    "foreground": "Foreground",
+    "psychophysics": "Psychophysics",
+    "cot": "CoT",
+    "thinking": "Thinking",
+}
+
 
 def _prepare_dose_response(df: pl.DataFrame) -> pl.DataFrame:
     sweep = _balanced_sweep(_valid(df))
@@ -82,6 +93,54 @@ def dose_response_chart(df: pl.DataFrame) -> alt.Chart:
     return chart
 
 
+def _prepare_prompt_invariance(df: pl.DataFrame) -> pl.DataFrame:
+    valid = _valid(df).filter(~pl.col("crisp_on_top"))
+    grouped = (
+        valid.group_by("prompt_id", "model")
+        .agg(
+            pl.col("correct").sum().alias("k"),
+            pl.col("correct").count().alias("n"),
+        )
+        .with_columns(
+            (pl.col("k") / pl.col("n") * 100).alias("accuracy"),
+            pl.col("model").replace(MODEL_LABELS).alias("model_label"),
+            pl.col("prompt_id").replace(PROMPT_LABELS).alias("prompt_label"),
+        )
+    )
+    return grouped
+
+
+def prompt_invariance_chart(df: pl.DataFrame) -> alt.Chart:
+    data = _prepare_prompt_invariance(df)
+    label_order = [MODEL_LABELS[m] for m in MODEL_ORDER if m in MODEL_LABELS]
+    prompt_label_order = [PROMPT_LABELS[p] for p in PROMPT_ORDER]
+
+    chance = alt.Chart(data).mark_rule(
+        strokeDash=[4, 4], stroke="grey", strokeWidth=1
+    ).encode(y=alt.datum(50))
+
+    points = alt.Chart(data).mark_circle(size=50, opacity=0.7).encode(
+        x=alt.X(
+            "prompt_label:N",
+            title="Prompt variant",
+            sort=prompt_label_order,
+            axis=alt.Axis(labelAngle=-30),
+        ),
+        y=alt.Y(
+            "accuracy:Q",
+            title="Accuracy (%, bias-incongruent)",
+            scale=alt.Scale(domain=[0, 60]),
+        ),
+        color=alt.Color(
+            "model_label:N",
+            title="Model",
+            sort=label_order,
+        ),
+    )
+
+    return (chance + points).properties(width=350, height=250)
+
+
 def save_chart(chart: alt.Chart, output: Path) -> None:
     suffix = output.suffix.lower()
     if suffix == ".pdf":
@@ -105,5 +164,10 @@ def generate_figures(results_path: Path, output_dir: Path) -> list[Path]:
     chart = dose_response_chart(df)
     save_chart(chart, dose_path)
     paths.append(dose_path)
+
+    prompt_path = output_dir / "prompt_invariance.pdf"
+    chart = prompt_invariance_chart(df)
+    save_chart(chart, prompt_path)
+    paths.append(prompt_path)
 
     return paths
