@@ -1,6 +1,6 @@
 """Capture thinking traces for qualitative analysis.
 
-Runs 4 representative conditions (crisp/blurred on top × left/right) with
+Runs 4 representative conditions (crisp/blurred on top x left/right) with
 Anthropic extended thinking and saves the full traces to a JSON file.
 """
 
@@ -16,15 +16,44 @@ STIMULI_DIR = Path("stimuli")
 OUTPUT_PATH = Path("results/thinking_traces.json")
 
 CONDITIONS = [
-    Condition(crisp_on_top=True, crisp_side=Side.left, colour_crisp=Colour.red, colour_blurred=Colour.blue),
-    Condition(crisp_on_top=True, crisp_side=Side.right, colour_crisp=Colour.green, colour_blurred=Colour.yellow),
-    Condition(crisp_on_top=False, crisp_side=Side.left, colour_crisp=Colour.cyan, colour_blurred=Colour.magenta),
-    Condition(crisp_on_top=False, crisp_side=Side.right, colour_crisp=Colour.blue, colour_blurred=Colour.red),
+    Condition(
+        crisp_on_top=True,
+        crisp_side=Side.left,
+        colour_crisp=Colour.red,
+        colour_blurred=Colour.blue,
+    ),
+    Condition(
+        crisp_on_top=True,
+        crisp_side=Side.right,
+        colour_crisp=Colour.green,
+        colour_blurred=Colour.yellow,
+    ),
+    Condition(
+        crisp_on_top=False,
+        crisp_side=Side.left,
+        colour_crisp=Colour.cyan,
+        colour_blurred=Colour.magenta,
+    ),
+    Condition(
+        crisp_on_top=False,
+        crisp_side=Side.right,
+        colour_crisp=Colour.blue,
+        colour_blurred=Colour.red,
+    ),
 ]
 
-MODELS = [
-    ("claude-sonnet-4-6", {"thinking": {"type": "enabled", "budget_tokens": 4096}, "max_tokens": 8192}),
-    ("claude-opus-4-6", {"thinking": {"type": "adaptive"}, "max_tokens": 16000}),
+MODELS: list[tuple[str, dict]] = [
+    (
+        "claude-sonnet-4-6",
+        {
+            "thinking": {"type": "enabled", "budget_tokens": 4096},
+            "max_tokens": 8192,
+        },
+    ),
+    (
+        "claude-opus-4-6",
+        {"thinking": {"type": "adaptive"}, "max_tokens": 16000},
+    ),
 ]
 
 
@@ -37,7 +66,10 @@ def main():
         for cond in CONDITIONS:
             image_path = STIMULI_DIR / cond.image_filename
             b64 = _encode_image(image_path)
-            print(f"{model} | {cond.image_filename} (correct: {cond.correct_answer.value})")
+            print(
+                f"{model} | {cond.image_filename} "
+                f"(correct: {cond.correct_answer.value})"
+            )
 
             response = client.messages.create(
                 model=model,
@@ -45,7 +77,14 @@ def main():
                     {
                         "role": "user",
                         "content": [
-                            {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": b64}},
+                            {
+                                "type": "image",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": "image/png",
+                                    "data": b64,
+                                },
+                            },
                             {"type": "text", "text": prompt},
                         ],
                     }

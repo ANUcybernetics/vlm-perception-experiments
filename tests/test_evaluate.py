@@ -206,6 +206,7 @@ def test_extract_openai_responses_output():
 
     raw, reasoning = _extract_openai_responses_output(response)
     assert raw == '{"answer": "left"}'
+    assert reasoning is not None
     assert "crisp edges" in reasoning
     assert "occlude" in reasoning
 

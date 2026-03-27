@@ -353,7 +353,7 @@ def _blur_x_depth_interaction(df: pl.DataFrame) -> str:
     models = sorted(sweep["model"].unique().to_list())
 
     lines = [
-        "## 5. Blur × depth order interaction",
+        "## 5. Blur x depth order interaction",
         "",
         "The crisp-in-front bias is negligible at zero blur and escalates "
         "with blur magnitude. Odds ratios (crisp-on-top vs blurred-on-top) "
@@ -379,8 +379,8 @@ def _blur_x_depth_interaction(df: pl.DataFrame) -> str:
         ci = or_result.confidence_interval(confidence_level=0.95)
         _, fp = fisher_exact(table)
         lines.append(
-            f"{blur:>10d} {_fmt_pct(ct['correct'].mean()):>12s} "
-            f"{_fmt_pct(bt['correct'].mean()):>12s} "
+            f"{blur:>10d} {_fmt_pct(float(ct['correct'].mean())):>12s} "  # ty: ignore[invalid-argument-type]
+            f"{_fmt_pct(float(bt['correct'].mean())):>12s} "  # ty: ignore[invalid-argument-type]
             f"{_fmt_or(or_result.statistic):>8s} "
             f"{_fmt_or_ci(ci.low, ci.high):>16s} {_fmt_p(fp):>12s}"
         )
@@ -626,10 +626,10 @@ def _prompt_effects(df: pl.DataFrame) -> str:
             k = int(sub.filter(pl.col("prompt_id") == pid)["correct"].sum())
             n = int(sub.filter(pl.col("prompt_id") == pid).height)
             ci = _wilson_ci(k, n)
-            lines.append(f"  {pid}: {_fmt_pct(accs[pid])} {_fmt_ci(*ci)}")
+            lines.append(f"  {pid}: {_fmt_pct(float(accs[pid]))} {_fmt_ci(*ci)}")  # ty: ignore[invalid-argument-type]
         lines.append("")
 
-    lines.append("### Accuracy by model × prompt (blurred on top)")
+    lines.append("### Accuracy by model x prompt (blurred on top)")
     lines.append("")
     bt = valid.filter(pl.col("crisp_on_top").not_())
     wide = (
@@ -704,7 +704,7 @@ def _nuisance_variables(df: pl.DataFrame) -> str:
     lines.append("")
 
     lines.append(
-        "Side × depth order interaction (does side bias differ by depth?):"
+        "Side x depth order interaction (does side bias differ by depth?):"
     )
     for depth_label, depth_val in [
         ("Crisp on top", True),
@@ -715,8 +715,8 @@ def _nuisance_variables(df: pl.DataFrame) -> str:
         right = dsub.filter(pl.col("crisp_side") == "right")
         t = _2x2(left, right)
         _, fp = fisher_exact(t)
-        l_acc = left["correct"].mean()
-        r_acc = right["correct"].mean()
+        l_acc = float(left["correct"].mean())  # ty: ignore[invalid-argument-type]
+        r_acc = float(right["correct"].mean())  # ty: ignore[invalid-argument-type]
         lines.append(
             f"  {depth_label}: left={_fmt_pct(l_acc)}, "
             f"right={_fmt_pct(r_acc)}, p = {_fmt_p(fp)}"
@@ -755,7 +755,7 @@ def _nuisance_variables(df: pl.DataFrame) -> str:
 
     lines.append(
         "Effect sizes are small: V < 0.09 for colour pairs and V < 0.03 "
-        "for side. There is a modest side × depth interaction for "
+        "for side. There is a modest side x depth interaction for "
         "bias-incongruent trials (models favour the left circle slightly "
         "more when the blurred circle is on top). The counterbalanced "
         "design ensures this does not inflate the primary depth-order "
@@ -796,7 +796,7 @@ def _summary_table(df: pl.DataFrame) -> str:
         or_val = odds_ratio(table, kind="conditional").statistic
 
         zero = msub.filter(pl.col("blur_px") == 0)
-        zero_acc = zero["correct"].mean() if len(zero) > 0 else float("nan")
+        zero_acc = float(zero["correct"].mean()) if len(zero) > 0 else float("nan")  # ty: ignore[invalid-argument-type]
 
         bt_sweep = _balanced_sweep(bt)
         cells = (

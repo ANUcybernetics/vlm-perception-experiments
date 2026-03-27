@@ -8,6 +8,7 @@ from pathlib import Path
 
 import anthropic
 import openai
+import openai.types.responses
 
 from vlm_perception.models import Condition, Side, TrialResult
 
@@ -53,8 +54,14 @@ THINKING_PROMPT_ID = "thinking"
 
 def _anthropic_thinking_kwargs(model: str) -> dict:
     if model == "claude-opus-4-6":
-        return {"thinking": {"type": "enabled", "budget_tokens": 10000}, "max_tokens": 16000}
-    return {"thinking": {"type": "enabled", "budget_tokens": 4096}, "max_tokens": 8192}
+        return {
+            "thinking": {"type": "enabled", "budget_tokens": 10000},
+            "max_tokens": 16000,
+        }
+    return {
+        "thinking": {"type": "enabled", "budget_tokens": 4096},
+        "max_tokens": 8192,
+    }
 
 
 def _build_anthropic_request(b64: str, prompt: str, prompt_id: str, model: str) -> dict:
@@ -131,9 +138,10 @@ def _build_openai_responses_request(b64: str, prompt: str, model: str) -> dict:
 
 
 def _extract_openai_responses_output(
-    response: "openai.types.responses.Response",
+    response: openai.types.responses.Response,
 ) -> tuple[str, str | None]:
     from openai.types.responses import ResponseOutputMessage, ResponseReasoningItem
+    from openai.types.responses.response_output_message import ResponseOutputText
 
     raw = ""
     reasoning_parts: list[str] = []
@@ -143,7 +151,7 @@ def _extract_openai_responses_output(
                 reasoning_parts.append(summary.text)
         elif isinstance(item, ResponseOutputMessage):
             for block in item.content:
-                if block.type == "output_text":
+                if isinstance(block, ResponseOutputText):
                     raw = block.text
     reasoning = "\n".join(reasoning_parts) if reasoning_parts else None
     return raw, reasoning
