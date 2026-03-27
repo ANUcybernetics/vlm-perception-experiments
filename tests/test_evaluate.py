@@ -145,14 +145,14 @@ def test_build_anthropic_request_thinking():
 def test_build_openai_request_structure():
     req = _build_openai_request("b64data", "prompt text", "neutral", "gpt-5.4")
     assert req["model"] == "gpt-5.4"
-    assert req["max_completion_tokens"] == 1024
+    assert req["max_completion_tokens"] == 4096
     assert len(req["messages"]) == 1
 
 
 def test_build_openai_request_thinking():
     req = _build_openai_request("b64data", "prompt text", "thinking", "gpt-5.4")
     assert req["reasoning_effort"] == "medium"
-    assert req["max_completion_tokens"] == 4096
+    assert req["max_completion_tokens"] == 16384
 
 
 def test_async_evaluate_unknown_provider():

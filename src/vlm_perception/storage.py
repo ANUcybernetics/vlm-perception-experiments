@@ -44,3 +44,29 @@ async def async_append_result(
 
 def load_results(path: Path) -> pl.DataFrame:
     return pl.read_ndjson(path)
+
+
+TRIAL_KEY_COLS = [
+    "model",
+    "prompt_id",
+    "blur_px",
+    "crisp_on_top",
+    "crisp_side",
+    "colour_crisp",
+    "colour_blurred",
+]
+
+
+def existing_trial_counts(path: Path) -> dict[tuple, int]:
+    if not path.exists() or path.stat().st_size == 0:
+        return {}
+    df = load_results(path)
+    counts = (
+        df.group_by(TRIAL_KEY_COLS)
+        .agg(pl.col("model").count().alias("n"))
+    )
+    result = {}
+    for row in counts.iter_rows(named=True):
+        key = tuple(row[col] for col in TRIAL_KEY_COLS)
+        result[key] = row["n"]
+    return result

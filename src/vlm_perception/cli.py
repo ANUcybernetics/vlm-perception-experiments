@@ -63,6 +63,10 @@ def evaluate(
         False,
         help="Use reduced blur sweep conditions (80) instead of full factorial (120)",
     ),
+    resume: bool = typer.Option(
+        False,
+        help="Skip trials already present in results file",
+    ),
 ) -> None:
     """Run VLM evaluation on stimulus images."""
     asyncio.run(
@@ -75,6 +79,7 @@ def evaluate(
             limit=limit,
             concurrency=concurrency,
             blur_sweep=blur_sweep,
+            resume=resume,
         )
     )
 
@@ -88,6 +93,7 @@ async def _evaluate_async(
     limit: int,
     concurrency: int,
     blur_sweep: bool,
+    resume: bool,
 ) -> None:
     from vlm_perception.evaluate import async_evaluate, get_prompt
     from vlm_perception.models import (
@@ -95,7 +101,10 @@ async def _evaluate_async(
         blur_sweep_conditions,
         resolve_model,
     )
-    from vlm_perception.storage import async_append_result
+    from vlm_perception.storage import (
+        async_append_result,
+        existing_trial_counts,
+    )
 
     for pid in prompt_ids:
         get_prompt(pid)
@@ -111,14 +120,36 @@ async def _evaluate_async(
         if provider not in semaphores:
             semaphores[provider] = asyncio.Semaphore(concurrency)
 
+    existing = existing_trial_counts(results_path) if resume else {}
+
     trials: list[tuple[str, str, str, int, int]] = []
+    skipped = 0
     for m in models:
         for pid in prompt_ids:
-            for rep in range(reps):
-                for ci, _condition in enumerate(conditions):
-                    trials.append((m, pid, specs[m].provider, rep, ci))
+            for ci, condition in enumerate(conditions):
+                key = (
+                    specs[m].model_id,
+                    pid,
+                    condition.blur_radius,
+                    condition.crisp_on_top,
+                    condition.crisp_side.value,
+                    condition.colour_crisp.value,
+                    condition.colour_blurred.value,
+                )
+                already_done = existing.get(key, 0)
+                needed = max(0, reps - already_done)
+                skipped += reps - needed
+                for _rep in range(needed):
+                    trials.append(
+                        (m, pid, specs[m].provider, 0, ci)
+                    )
 
     total = len(trials)
+    if resume and skipped > 0:
+        typer.echo(f"Resuming: skipping {skipped} already-completed trials")
+    if total == 0:
+        typer.echo("All trials already completed, nothing to do.")
+        return
     typer.echo(
         f"Running {total} trials "
         f"({len(models)} model(s) x {len(prompt_ids)} prompt(s) x "
@@ -131,6 +162,7 @@ async def _evaluate_async(
     completed = 0
     n_correct = 0
     n_total = 0
+    n_errors = 0
 
     async def run_trial(
         model_name: str,
@@ -138,25 +170,39 @@ async def _evaluate_async(
         provider: str,
         condition_idx: int,
     ) -> None:
-        nonlocal completed, n_correct, n_total
+        nonlocal completed, n_correct, n_total, n_errors
         condition = conditions[condition_idx]
         image_path = stimuli_dir / condition.image_filename
         if not image_path.exists():
             async with counter_lock:
                 completed += 1
             typer.echo(
-                f"  [{completed}/{total}] MISSING: {image_path}", err=True
+                f"  [{completed}/{total}] MISSING: {image_path}",
+                err=True,
             )
             return
 
-        result = await async_evaluate(
-            image_path,
-            condition,
-            provider=provider,
-            model=specs[model_name].model_id,
-            prompt_id=prompt_id,
-            semaphore=semaphores[provider],
-        )
+        try:
+            result = await async_evaluate(
+                image_path,
+                condition,
+                provider=provider,
+                model=specs[model_name].model_id,
+                prompt_id=prompt_id,
+                semaphore=semaphores[provider],
+            )
+        except Exception as exc:
+            async with counter_lock:
+                completed += 1
+                n_errors += 1
+            typer.echo(
+                f"  [{completed}/{total}] ERROR: {model_name} "
+                f"{prompt_id} {condition.image_filename} "
+                f"-> {type(exc).__name__}: {exc}",
+                err=True,
+            )
+            return
+
         await async_append_result(result, results_path, file_lock)
 
         async with counter_lock:
@@ -186,8 +232,9 @@ async def _evaluate_async(
     ]
     await asyncio.gather(*tasks)
 
+    error_msg = f" ({n_errors} errors)" if n_errors else ""
     typer.echo(
-        f"\nDone. {n_correct}/{n_total} correct. "
+        f"\nDone. {n_correct}/{n_total} correct{error_msg}. "
         f"Results saved to {results_path}"
     )
 

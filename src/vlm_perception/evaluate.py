@@ -89,9 +89,9 @@ def _build_openai_request(b64: str, prompt: str, prompt_id: str, model: str) -> 
     extra: dict = {}
     if prompt_id == THINKING_PROMPT_ID:
         extra["reasoning_effort"] = "medium"
-        extra["max_completion_tokens"] = 4096
+        extra["max_completion_tokens"] = 16384
     else:
-        extra["max_completion_tokens"] = 1024
+        extra["max_completion_tokens"] = 4096
     return {
         "model": model,
         "messages": [

@@ -67,7 +67,8 @@ Available models: `claude-opus-4-6`, `claude-sonnet-4-6`, `claude-haiku-4-5`,
 `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano`. Use `--limit N` to evaluate only the
 first N conditions. Use `--prompt <id>` to select a prompt variant (default:
 `neutral`). Use `--concurrency N` to set max concurrent requests per provider
-(default: 10).
+(default: 10). Use `--resume` to skip trials already present in the results file
+--- useful for recovering from partial runs or errors.
 
 ### Prompt variants
 

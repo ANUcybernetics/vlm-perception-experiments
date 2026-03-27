@@ -5,6 +5,7 @@ from vlm_perception.models import Colour, Condition, Side, TrialResult
 from vlm_perception.storage import (
     append_results,
     async_append_result,
+    existing_trial_counts,
     load_results,
     result_to_row,
 )
@@ -125,3 +126,44 @@ def test_async_concurrent_appends(tmp_path):
     df = load_results(jsonl_path)
     assert len(df) == 20
     assert set(df["model"].to_list()) == {f"model-{i}" for i in range(20)}
+
+
+def test_existing_trial_counts_empty_file(tmp_path):
+    jsonl_path = tmp_path / "results.jsonl"
+    assert existing_trial_counts(jsonl_path) == {}
+
+
+def test_existing_trial_counts_nonexistent_file(tmp_path):
+    jsonl_path = tmp_path / "nonexistent.jsonl"
+    assert existing_trial_counts(jsonl_path) == {}
+
+
+def test_existing_trial_counts_single_trial(tmp_path):
+    jsonl_path = tmp_path / "results.jsonl"
+    append_results([_make_result()], jsonl_path)
+
+    counts = existing_trial_counts(jsonl_path)
+    key = ("test-model", "neutral", 20, True, "left", "red", "blue")
+    assert counts[key] == 1
+
+
+def test_existing_trial_counts_multiple_reps(tmp_path):
+    jsonl_path = tmp_path / "results.jsonl"
+    append_results([_make_result(), _make_result(), _make_result()], jsonl_path)
+
+    counts = existing_trial_counts(jsonl_path)
+    key = ("test-model", "neutral", 20, True, "left", "red", "blue")
+    assert counts[key] == 3
+
+
+def test_existing_trial_counts_different_conditions(tmp_path):
+    jsonl_path = tmp_path / "results.jsonl"
+    r1 = _make_result(model="model-a")
+    r2 = _make_result(model="model-b")
+    append_results([r1, r1, r2], jsonl_path)
+
+    counts = existing_trial_counts(jsonl_path)
+    key_a = ("model-a", "neutral", 20, True, "left", "red", "blue")
+    key_b = ("model-b", "neutral", 20, True, "left", "red", "blue")
+    assert counts[key_a] == 2
+    assert counts[key_b] == 1
