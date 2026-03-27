@@ -127,6 +127,36 @@ def prompt_effect(df: pl.DataFrame) -> tuple[pl.DataFrame, pl.DataFrame]:
     return pl.concat([per_model, pooled]), wide
 
 
+def accuracy_by_blur(df: pl.DataFrame) -> pl.DataFrame:
+    if "blur_px" not in df.columns:
+        return pl.DataFrame()
+    return (
+        df.filter(pl.col("correct").is_not_null())
+        .group_by(*GROUP, "blur_px")
+        .agg(
+            pl.col("correct").sum().alias("n_correct"),
+            pl.col("correct").count().alias("n_total"),
+            pl.col("correct").mean().alias("accuracy"),
+        )
+        .sort(*GROUP, "blur_px")
+    )
+
+
+def accuracy_by_blur_and_layout(df: pl.DataFrame) -> pl.DataFrame:
+    if "blur_px" not in df.columns:
+        return pl.DataFrame()
+    return (
+        df.filter(pl.col("correct").is_not_null())
+        .group_by(*GROUP, "blur_px", "crisp_on_top")
+        .agg(
+            pl.col("correct").sum().alias("n_correct"),
+            pl.col("correct").count().alias("n_total"),
+            pl.col("correct").mean().alias("accuracy"),
+        )
+        .sort(*GROUP, "blur_px", "crisp_on_top")
+    )
+
+
 def unparseable_count(df: pl.DataFrame) -> pl.DataFrame:
     return (
         df.filter(pl.col("parsed_answer").is_null())
@@ -156,6 +186,16 @@ def full_report(results_path: Path) -> str:
     sections.append(str(wide_acc))
     sections.append("\n## Prompt effect: chi-square test (prompt x correctness)")
     sections.append(str(chi2_results))
+
+    blur_df = accuracy_by_blur(df)
+    if len(blur_df) > 0:
+        sections.append("\n## Accuracy by blur radius")
+        sections.append(str(blur_df))
+
+    blur_layout_df = accuracy_by_blur_and_layout(df)
+    if len(blur_layout_df) > 0:
+        sections.append("\n## Accuracy by blur radius x layout")
+        sections.append(str(blur_layout_df))
 
     sections.append("\n## Accuracy by colour pair")
     sections.append(str(accuracy_by_colour(df)))

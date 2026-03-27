@@ -110,8 +110,26 @@ def _build_openai_request(b64: str, prompt: str, prompt_id: str, model: str) -> 
     }
 
 
+def _extract_anthropic_response(
+    response: anthropic.types.Message,
+) -> tuple[str, str | None]:
+    raw = ""
+    thinking = ""
+    for block in response.content:
+        if isinstance(block, anthropic.types.ThinkingBlock):
+            thinking += block.thinking
+        elif isinstance(block, anthropic.types.TextBlock):
+            raw = block.text
+    return raw, thinking or None
+
+
 def _make_trial_result(
-    raw: str, condition: Condition, model: str, prompt_id: str, prompt: str
+    raw: str,
+    condition: Condition,
+    model: str,
+    prompt_id: str,
+    prompt: str,
+    reasoning_trace: str | None = None,
 ) -> TrialResult:
     parsed = _parse_response(raw)
     correct = parsed == condition.correct_answer if parsed else None
@@ -121,6 +139,7 @@ def _make_trial_result(
         prompt_id=prompt_id,
         prompt=prompt,
         raw_response=raw,
+        reasoning_trace=reasoning_trace,
         parsed_answer=parsed,
         correct=correct,
         timestamp=TrialResult.now(),
@@ -152,12 +171,11 @@ def evaluate_anthropic(
                 MAX_RETRIES,
             )
             time.sleep(delay)
-    raw = ""
-    for block in response.content:
-        if isinstance(block, anthropic.types.TextBlock):
-            raw = block.text
-            break
-    return _make_trial_result(raw, condition, model, prompt_id, prompt)
+    raw, thinking = _extract_anthropic_response(response)
+    return _make_trial_result(
+        raw, condition, model, prompt_id, prompt,
+        reasoning_trace=thinking,
+    )
 
 
 def evaluate_openai(
@@ -218,12 +236,11 @@ async def async_evaluate_anthropic(
                     MAX_RETRIES,
                 )
                 await asyncio.sleep(delay)
-    raw = ""
-    for block in response.content:
-        if isinstance(block, anthropic.types.TextBlock):
-            raw = block.text
-            break
-    return _make_trial_result(raw, condition, model, prompt_id, prompt)
+    raw, thinking = _extract_anthropic_response(response)
+    return _make_trial_result(
+        raw, condition, model, prompt_id, prompt,
+        reasoning_trace=thinking,
+    )
 
 
 async def async_evaluate_openai(

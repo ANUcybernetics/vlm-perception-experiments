@@ -7,7 +7,6 @@ from vlm_perception.models import Condition, Side, all_conditions
 CANVAS_SIZE = 512
 CIRCLE_RADIUS = 100
 OVERLAP_OFFSET = 75
-BLUR_RADIUS = 20
 BG_GREY = (128, 128, 128)
 
 
@@ -23,7 +22,7 @@ def _circle_centre(side: Side) -> tuple[int, int]:
 def _draw_circle(
     colour: tuple[int, int, int],
     centre: tuple[int, int],
-    blur: bool,
+    blur_radius: int = 0,
 ) -> Image.Image:
     """Draw a single circle on a transparent layer, optionally blurred."""
     layer = Image.new("RGBA", (CANVAS_SIZE, CANVAS_SIZE), (*colour, 0))
@@ -31,8 +30,8 @@ def _draw_circle(
     x, y = centre
     bbox = (x - CIRCLE_RADIUS, y - CIRCLE_RADIUS, x + CIRCLE_RADIUS, y + CIRCLE_RADIUS)
     draw.ellipse(bbox, fill=(*colour, 255))
-    if blur:
-        layer = layer.filter(ImageFilter.GaussianBlur(radius=BLUR_RADIUS))
+    if blur_radius > 0:
+        layer = layer.filter(ImageFilter.GaussianBlur(radius=blur_radius))
     return layer
 
 
@@ -44,9 +43,10 @@ def generate_image(condition: Condition) -> Image.Image:
     blurred_side = Side.right if condition.crisp_side == Side.left else Side.left
     blurred_centre = _circle_centre(blurred_side)
 
-    crisp_layer = _draw_circle(condition.colour_crisp.rgb, crisp_centre, blur=False)
+    crisp_layer = _draw_circle(condition.colour_crisp.rgb, crisp_centre)
     blurred_layer = _draw_circle(
-        condition.colour_blurred.rgb, blurred_centre, blur=True
+        condition.colour_blurred.rgb, blurred_centre,
+        blur_radius=condition.blur_radius,
     )
 
     if condition.crisp_on_top:
@@ -59,11 +59,16 @@ def generate_image(condition: Condition) -> Image.Image:
     return canvas.convert("RGB")
 
 
-def generate_all(output_dir: Path) -> list[Path]:
-    """Generate all factorial stimulus images, returning paths."""
+def generate_all(
+    output_dir: Path,
+    conditions: list[Condition] | None = None,
+) -> list[Path]:
+    """Generate stimulus images for given conditions (defaults to full factorial)."""
+    if conditions is None:
+        conditions = all_conditions()
     output_dir.mkdir(parents=True, exist_ok=True)
     paths = []
-    for condition in all_conditions():
+    for condition in conditions:
         path = output_dir / condition.image_filename
         img = generate_image(condition)
         img.save(path)

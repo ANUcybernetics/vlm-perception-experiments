@@ -84,6 +84,7 @@ def test_make_trial_result_correct():
     assert result.parsed_answer == Side.left
     assert result.correct is True
     assert result.model == "test-model"
+    assert result.reasoning_trace is None
 
 
 def test_make_trial_result_incorrect():
@@ -110,8 +111,23 @@ def test_make_trial_result_unparseable():
     assert result.correct is None
 
 
+def test_make_trial_result_with_reasoning_trace():
+    result = _make_trial_result(
+        '{"answer": "left"}',
+        _make_condition(),
+        "test-model",
+        "thinking",
+        "test prompt",
+        reasoning_trace="I see the left circle has crisp edges...",
+    )
+    assert result.reasoning_trace == "I see the left circle has crisp edges..."
+    assert result.correct is True
+
+
 def test_build_anthropic_request_structure():
-    req = _build_anthropic_request("b64data", "prompt text", "neutral", "claude-sonnet-4-6")
+    req = _build_anthropic_request(
+        "b64data", "prompt text", "neutral", "claude-sonnet-4-6"
+    )
     assert req["model"] == "claude-sonnet-4-6"
     assert req["max_tokens"] == 1024
     assert len(req["messages"]) == 1
@@ -119,7 +135,9 @@ def test_build_anthropic_request_structure():
 
 
 def test_build_anthropic_request_thinking():
-    req = _build_anthropic_request("b64data", "prompt text", "thinking", "claude-sonnet-4-6")
+    req = _build_anthropic_request(
+        "b64data", "prompt text", "thinking", "claude-sonnet-4-6"
+    )
     assert "thinking" in req
     assert req["thinking"]["type"] == "enabled"
 

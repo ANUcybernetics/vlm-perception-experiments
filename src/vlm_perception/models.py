@@ -90,6 +90,16 @@ class Side(StrEnum):
     right = "right"
 
 
+DEFAULT_BLUR_RADIUS = 20
+BLUR_SWEEP_RADII = [4, 8, 12, 16, 20]
+BLUR_SWEEP_COLOUR_PAIRS: list[tuple[Colour, Colour]] = [
+    (Colour.red, Colour.cyan),
+    (Colour.yellow, Colour.blue),
+    (Colour.green, Colour.magenta),
+    (Colour.cyan, Colour.red),
+]
+
+
 class Condition(BaseModel):
     """A single experimental condition (one row of the factorial design)."""
 
@@ -97,6 +107,7 @@ class Condition(BaseModel):
     crisp_side: Side
     colour_crisp: Colour
     colour_blurred: Colour
+    blur_radius: int = DEFAULT_BLUR_RADIUS
 
     @property
     def correct_answer(self) -> Side:
@@ -111,7 +122,7 @@ class Condition(BaseModel):
         side = self.crisp_side.value
         cc = self.colour_crisp.value
         cb = self.colour_blurred.value
-        return f"{top}_{side}_{cc}_{cb}.png"
+        return f"{top}_{side}_{cc}_{cb}_blur{self.blur_radius}.png"
 
 
 class TrialResult(BaseModel):
@@ -122,6 +133,7 @@ class TrialResult(BaseModel):
     prompt_id: str
     prompt: str
     raw_response: str
+    reasoning_trace: str | None = None
     parsed_answer: Side | None
     correct: bool | None
     timestamp: datetime
@@ -131,7 +143,7 @@ class TrialResult(BaseModel):
         return datetime.now(UTC)
 
 
-def all_conditions() -> list[Condition]:
+def all_conditions(blur_radius: int = DEFAULT_BLUR_RADIUS) -> list[Condition]:
     """Generate the full factorial set of conditions, excluding same-colour pairs."""
     conditions = []
     for crisp_on_top in [True, False]:
@@ -146,6 +158,30 @@ def all_conditions() -> list[Condition]:
                             crisp_side=crisp_side,
                             colour_crisp=colour_crisp,
                             colour_blurred=colour_blurred,
+                            blur_radius=blur_radius,
+                        )
+                    )
+    return conditions
+
+
+def blur_sweep_conditions() -> list[Condition]:
+    """Reduced factorial for blur radius sweep.
+
+    2 (depth) x 2 (side) x 4 colour pairs x 5 blur levels = 80 conditions.
+    Colour pairs are chosen to span the hue wheel (complementary pairs).
+    """
+    conditions = []
+    for blur_radius in BLUR_SWEEP_RADII:
+        for crisp_on_top in [True, False]:
+            for crisp_side in Side:
+                for colour_crisp, colour_blurred in BLUR_SWEEP_COLOUR_PAIRS:
+                    conditions.append(
+                        Condition(
+                            crisp_on_top=crisp_on_top,
+                            crisp_side=crisp_side,
+                            colour_crisp=colour_crisp,
+                            colour_blurred=colour_blurred,
+                            blur_radius=blur_radius,
                         )
                     )
     return conditions

@@ -6,26 +6,12 @@ import polars as pl
 
 from vlm_perception.models import TrialResult
 
-COLUMNS = [
-    "model",
-    "prompt_id",
-    "crisp_on_top",
-    "crisp_side",
-    "colour_crisp",
-    "colour_blurred",
-    "correct_answer",
-    "parsed_answer",
-    "correct",
-    "prompt",
-    "raw_response",
-    "timestamp",
-]
-
 
 def result_to_row(result: TrialResult) -> dict:
     return {
         "model": result.model,
         "prompt_id": result.prompt_id,
+        "blur_px": result.condition.blur_radius,
         "crisp_on_top": result.condition.crisp_on_top,
         "crisp_side": result.condition.crisp_side.value,
         "colour_crisp": result.condition.colour_crisp.value,
@@ -35,6 +21,7 @@ def result_to_row(result: TrialResult) -> dict:
         "correct": result.correct,
         "prompt": result.prompt,
         "raw_response": result.raw_response,
+        "reasoning_trace": result.reasoning_trace,
         "timestamp": result.timestamp.isoformat(),
     }
 

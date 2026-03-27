@@ -6,7 +6,9 @@ import typer
 from vlm_perception.evaluate import DEFAULT_PROMPT_ID, load_prompts
 from vlm_perception.models import MODEL_REGISTRY
 
-app = typer.Typer(help="VLM perception experiment: crisp vs blurred circle occlusion.")
+app = typer.Typer(
+    help="VLM perception experiment: crisp vs blurred circle occlusion."
+)
 
 DEFAULT_STIMULI_DIR = Path("stimuli")
 DEFAULT_RESULTS_PATH = Path("results/results.jsonl")
@@ -21,11 +23,17 @@ def generate(
     output_dir: Path = typer.Option(
         DEFAULT_STIMULI_DIR, help="Directory for stimulus images"
     ),
+    blur_sweep: bool = typer.Option(
+        False,
+        help="Generate reduced stimulus set for blur radius sweep",
+    ),
 ) -> None:
-    """Generate the full factorial set of stimulus images."""
+    """Generate stimulus images."""
+    from vlm_perception.models import all_conditions, blur_sweep_conditions
     from vlm_perception.stimuli import generate_all
 
-    paths = generate_all(output_dir)
+    conditions = blur_sweep_conditions() if blur_sweep else all_conditions()
+    paths = generate_all(output_dir, conditions)
     typer.echo(f"Generated {len(paths)} images in {output_dir}")
 
 
@@ -42,14 +50,21 @@ def evaluate(
         DEFAULT_RESULTS_PATH, help="JSONL file for results"
     ),
     prompt: list[str] = typer.Option(
-        [DEFAULT_PROMPT_ID], help=f"Prompt ID(s). Available: {AVAILABLE_PROMPTS}"
+        [DEFAULT_PROMPT_ID],
+        help=f"Prompt ID(s). Available: {AVAILABLE_PROMPTS}",
     ),
-    limit: int = typer.Option(0, help="Max conditions to evaluate (0 = all)"),
+    limit: int = typer.Option(
+        0, help="Max conditions to evaluate (0 = all)"
+    ),
     concurrency: int = typer.Option(
         DEFAULT_CONCURRENCY, help="Max concurrent requests per provider"
     ),
+    blur_sweep: bool = typer.Option(
+        False,
+        help="Use reduced blur sweep conditions (80) instead of full factorial (120)",
+    ),
 ) -> None:
-    """Run VLM evaluation on all stimulus images."""
+    """Run VLM evaluation on stimulus images."""
     asyncio.run(
         _evaluate_async(
             models=model,
@@ -59,6 +74,7 @@ def evaluate(
             results_path=results_path,
             limit=limit,
             concurrency=concurrency,
+            blur_sweep=blur_sweep,
         )
     )
 
@@ -71,16 +87,21 @@ async def _evaluate_async(
     results_path: Path,
     limit: int,
     concurrency: int,
+    blur_sweep: bool,
 ) -> None:
     from vlm_perception.evaluate import async_evaluate, get_prompt
-    from vlm_perception.models import all_conditions, resolve_model
+    from vlm_perception.models import (
+        all_conditions,
+        blur_sweep_conditions,
+        resolve_model,
+    )
     from vlm_perception.storage import async_append_result
 
     for pid in prompt_ids:
         get_prompt(pid)
     specs = {m: resolve_model(m) for m in models}
 
-    conditions = all_conditions()
+    conditions = blur_sweep_conditions() if blur_sweep else all_conditions()
     if limit > 0:
         conditions = conditions[:limit]
 
@@ -112,7 +133,10 @@ async def _evaluate_async(
     n_total = 0
 
     async def run_trial(
-        model_name: str, prompt_id: str, provider: str, condition_idx: int
+        model_name: str,
+        prompt_id: str,
+        provider: str,
+        condition_idx: int,
     ) -> None:
         nonlocal completed, n_correct, n_total
         condition = conditions[condition_idx]
@@ -120,7 +144,9 @@ async def _evaluate_async(
         if not image_path.exists():
             async with counter_lock:
                 completed += 1
-            typer.echo(f"  [{completed}/{total}] MISSING: {image_path}", err=True)
+            typer.echo(
+                f"  [{completed}/{total}] MISSING: {image_path}", err=True
+            )
             return
 
         result = await async_evaluate(
@@ -142,18 +168,27 @@ async def _evaluate_async(
             status = (
                 "correct"
                 if result.correct
-                else ("incorrect" if result.correct is False else "unparseable")
+                else (
+                    "incorrect"
+                    if result.correct is False
+                    else "unparseable"
+                )
             )
             typer.echo(
                 f"  [{completed}/{total}] {model_name} {prompt_id} "
-                f"{condition.image_filename} -> {result.parsed_answer} ({status})"
+                f"{condition.image_filename} "
+                f"-> {result.parsed_answer} ({status})"
             )
 
-    tasks = [run_trial(m, pid, prov, ci) for m, pid, prov, _rep, ci in trials]
+    tasks = [
+        run_trial(m, pid, prov, ci)
+        for m, pid, prov, _rep, ci in trials
+    ]
     await asyncio.gather(*tasks)
 
     typer.echo(
-        f"\nDone. {n_correct}/{n_total} correct. Results saved to {results_path}"
+        f"\nDone. {n_correct}/{n_total} correct. "
+        f"Results saved to {results_path}"
     )
 
 

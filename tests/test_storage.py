@@ -31,6 +31,7 @@ def _make_result(correct: bool | None = True, model: str = "test-model") -> Tria
 def test_result_to_row_fields():
     row = result_to_row(_make_result())
     assert row["model"] == "test-model"
+    assert row["blur_px"] == 20
     assert row["crisp_on_top"] is True
     assert row["crisp_side"] == "left"
     assert row["colour_crisp"] == "red"
@@ -39,6 +40,7 @@ def test_result_to_row_fields():
     assert row["correct_answer"] == "left"
     assert row["parsed_answer"] == "left"
     assert row["correct"] is True
+    assert row["reasoning_trace"] is None
 
 
 def test_result_to_row_unparseable():

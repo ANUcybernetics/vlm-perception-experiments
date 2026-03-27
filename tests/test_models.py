@@ -1,11 +1,14 @@
 import pytest
 
 from vlm_perception.models import (
+    BLUR_SWEEP_COLOUR_PAIRS,
+    BLUR_SWEEP_RADII,
     MODEL_REGISTRY,
     Colour,
     Condition,
     Side,
     all_conditions,
+    blur_sweep_conditions,
     resolve_model,
 )
 
@@ -60,7 +63,42 @@ def test_image_filename_format():
         colour_crisp=Colour.red,
         colour_blurred=Colour.blue,
     )
-    assert c.image_filename == "crisp-top_left_red_blue.png"
+    assert c.image_filename == "crisp-top_left_red_blue_blur20.png"
+
+
+def test_image_filename_custom_blur():
+    c = Condition(
+        crisp_on_top=True,
+        crisp_side=Side.left,
+        colour_crisp=Colour.red,
+        colour_blurred=Colour.blue,
+        blur_radius=8,
+    )
+    assert c.image_filename == "crisp-top_left_red_blue_blur8.png"
+
+
+def test_blur_sweep_conditions_count():
+    conditions = blur_sweep_conditions()
+    expected = (
+        len(BLUR_SWEEP_RADII)
+        * 2  # depth order
+        * 2  # side
+        * len(BLUR_SWEEP_COLOUR_PAIRS)
+    )
+    assert len(conditions) == expected
+    assert len(conditions) == 80
+
+
+def test_blur_sweep_conditions_blur_values():
+    conditions = blur_sweep_conditions()
+    blur_values = sorted({c.blur_radius for c in conditions})
+    assert blur_values == sorted(BLUR_SWEEP_RADII)
+
+
+def test_blur_sweep_conditions_colour_pairs():
+    conditions = blur_sweep_conditions()
+    pairs = {(c.colour_crisp, c.colour_blurred) for c in conditions}
+    assert pairs == set(BLUR_SWEEP_COLOUR_PAIRS)
 
 
 def test_resolve_model_valid():

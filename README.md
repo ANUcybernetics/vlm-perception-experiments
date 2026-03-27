@@ -30,11 +30,13 @@ export OPENAI_API_KEY="..."
 ### Generate stimuli
 
 ```sh
-uv run vlm-perception generate
+uv run vlm-perception generate                # full factorial (120 images, blur=20px)
+uv run vlm-perception generate --blur-sweep   # blur sweep (80 images, 5 blur levels)
 ```
 
-Produces 120 images (2 depth orders x 2 spatial positions x 6 x 5 colour pairs,
-excluding same-colour) in `stimuli/`.
+The full factorial produces 120 images at the default blur radius (20px). The
+blur sweep produces 80 images across 5 blur levels (4, 8, 12, 16, 20px) with a
+reduced set of 4 colour pairs.
 
 ### Run evaluation
 
@@ -54,10 +56,17 @@ uv run vlm-perception evaluate \
   --reps 3
 ```
 
+Use `--blur-sweep` to evaluate the reduced blur radius sweep conditions (80)
+instead of the full factorial (120):
+
+```sh
+uv run vlm-perception evaluate --model claude-sonnet-4-6 --reps 3 --blur-sweep
+```
+
 Available models: `claude-opus-4-6`, `claude-sonnet-4-6`, `claude-haiku-4-5`,
 `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano`. Use `--limit N` to evaluate only the
 first N conditions. Use `--prompt <id>` to select a prompt variant (default:
-`neutral`). Use `--concurrency N` to set the max concurrent requests per provider
+`neutral`). Use `--concurrency N` to set max concurrent requests per provider
 (default: 10).
 
 ### Prompt variants
@@ -82,18 +91,43 @@ uv run vlm-perception analyse
 ```
 
 Prints accuracy breakdowns by model, layout (crisp-on-top vs blurred-on-top),
-spatial position, and colour pair.
+spatial position, blur radius, and colour pair.
 
 ## Experimental design
 
-- **Stimuli**: two overlapping circles on a mid-grey (128, 128, 128) background,
-  one crisp and one Gaussian-blurred (radius 20px). Circles are 100px radius with
-  75px horizontal offset between centres (~25% overlap).
-- **Conditions**: 2 (depth order) x 2 (crisp on left/right) x 6 x 5 (colour
-  pairs from 6 equidistant hues, excluding same-colour) = 120 conditions.
-- **Colours**: red, yellow, green, cyan, blue, magenta --- 6 equally-spaced hues
-  in OKLCH (L=0.7, C=0.15) for perceptual uniformity.
-- **Dependent variable**: binary left/right response parsed from VLM output.
+### Stimulus parameters
+
+- canvas: 512x512px, background RGB (128, 128, 128)
+- circle radius: 100px, centre offset: 75px (~25% area overlap)
+- colours: 6 OKLCH hues at L=0.7, C=0.15 (red, yellow, green, cyan, blue,
+  magenta)
+
+### Full factorial (120 conditions)
+
+The original design fully crosses depth order, spatial position, and colour
+pairs at a fixed blur radius of 20px:
+
+- **depth order** (2): crisp on top, blurred on top
+- **spatial position** (2): crisp circle on left, crisp circle on right
+- **colour pairs** (30): 6 x 5 hue combinations, excluding same-colour
+
+### Blur radius sweep (80 conditions)
+
+A preliminary full-factorial study showed no significant effects of colour pair
+or spatial position. The blur sweep therefore uses a reduced design to
+efficiently test the effect of blur strength:
+
+- **blur radius** (5): 4, 8, 12, 16, 20px
+- **depth order** (2): crisp on top, blurred on top
+- **spatial position** (2): crisp circle on left, crisp circle on right
+- **colour pairs** (4): red/cyan, yellow/blue, green/magenta, cyan/red ---
+  complementary pairs spanning the hue wheel
+
+### Dependent variable
+
+Binary left/right response parsed from VLM output. When using the `thinking`
+prompt variant, reasoning traces (Anthropic extended thinking) are also
+captured.
 
 ## Licence
 
