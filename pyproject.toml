@@ -42,3 +42,4 @@ select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
 
 [tool.ruff.lint.per-file-ignores]
 "src/vlm_perception/cli.py" = ["B008"]
+"src/vlm_perception/analysis.py" = ["E501", "SIM108"]
