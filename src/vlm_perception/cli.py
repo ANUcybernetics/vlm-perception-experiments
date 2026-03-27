@@ -251,5 +251,25 @@ def analyse(
     typer.echo(full_report(results_path))
 
 
+DEFAULT_FIGURES_DIR = Path("figures")
+
+
+@app.command()
+def plot(
+    results_path: Path = typer.Option(
+        DEFAULT_RESULTS_PATH, help="JSONL file with results"
+    ),
+    output_dir: Path = typer.Option(
+        DEFAULT_FIGURES_DIR, help="Directory for output figures"
+    ),
+) -> None:
+    """Generate figures from results."""
+    from vlm_perception.plotting import generate_figures
+
+    paths = generate_figures(results_path, output_dir)
+    for p in paths:
+        typer.echo(f"Saved {p}")
+
+
 if __name__ == "__main__":
     app()
