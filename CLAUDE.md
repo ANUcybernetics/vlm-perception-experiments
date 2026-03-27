@@ -9,7 +9,7 @@ identify occlusion order of crisp vs blurred overlapping circles.
 mise install          # install uv
 uv sync               # install Python dependencies
 uv run vlm-perception generate              # full factorial (120 images)
-uv run vlm-perception generate --blur-sweep # blur sweep (80 images, 5 blur levels)
+uv run vlm-perception generate --blur-sweep # blur sweep (96 images, 6 blur levels)
 ```
 
 To run VLM evaluation, set the relevant API key and run:
@@ -38,21 +38,13 @@ first N conditions. Use `--prompt <id>` to select a prompt variant (default:
 `neutral`). Use `--concurrency N` to set max concurrent requests per provider
 (default: 10). Use `--resume` to skip already-completed trials (based on
 existing results file). Use `--blur-sweep` to evaluate the reduced blur sweep conditions
-(80) instead of the full factorial (120). Available prompts: `neutral`,
+(96) instead of the full factorial (120). Available prompts: `neutral`,
 `minimal`, `foreground`, `psychophysics`, `cot`, `thinking`. Prompt definitions
 are in `src/vlm_perception/prompts.json`.
 
-Approximate evaluation time for 360 trials (120 conditions x 3 reps), median per
-trial:
-
-| Model             | Per trial | 360 trials |
-| ----------------- | --------- | ---------- |
-| claude-opus-4-6   | ~2.4s     | ~15min     |
-| claude-sonnet-4-6 | ~1.2s     | ~7min      |
-| claude-haiku-4-5  | ~1.3s     | ~8min      |
-| gpt-5.4           | ~1.0s     | ~6min      |
-| gpt-5.4-mini      | ~0.9s     | ~5min      |
-| gpt-5.4-nano      | ~0.7s     | ~4min      |
+Evaluation runs concurrently (asyncio with per-provider semaphore). With
+default concurrency=10, a full blur sweep (96 conditions x 3 reps x 6 models x
+6 prompts = 10,368 trials) takes ~15 minutes.
 
 Results append to `results/results.jsonl`. Analyse with:
 
@@ -86,7 +78,7 @@ is: which circle is in front (occluding the other)?
 - **colour pairs** (6 x 5 = 30): 6 hues, excluding same-colour pairs
 - **blur radius**: fixed at 20px
 
-### Blur radius sweep (80 conditions)
+### Blur radius sweep (96 conditions)
 
 Reduced design motivated by preliminary full-factorial results showing no
 significant effects of colour pair or spatial position:
@@ -120,8 +112,9 @@ significant effects of colour pair or spatial position:
   - `evaluate.py` --- sync and async VLM API dispatch (Anthropic, OpenAI) with
     JSON/freetext response parsing and per-provider semaphore rate limiting
   - `storage.py` --- JSONL append/load via polars, with async support
-  - `analysis.py` --- accuracy breakdowns by model, layout, side, blur radius,
-    colour pair
+  - `analysis.py` --- paper-quality statistical analysis with Fisher exact,
+    Cochran-Armitage trend, chi-square, Holm-Bonferroni pairwise comparisons,
+    and summary table. Handles blur=20 imbalance via balanced sweep subset.
   - `cli.py` --- typer CLI with `generate`, `evaluate`, `analyse` subcommands
 - `tests/` --- pytest tests
 

@@ -31,7 +31,7 @@ export OPENAI_API_KEY="..."
 
 ```sh
 uv run vlm-perception generate                # full factorial (120 images, blur=20px)
-uv run vlm-perception generate --blur-sweep   # blur sweep (80 images, 5 blur levels)
+uv run vlm-perception generate --blur-sweep   # blur sweep (96 images, 6 blur levels)
 ```
 
 The full factorial produces 120 images at the default blur radius (20px). The
@@ -57,7 +57,7 @@ uv run vlm-perception evaluate \
   --reps 3
 ```
 
-Use `--blur-sweep` to evaluate the reduced blur radius sweep conditions (80)
+Use `--blur-sweep` to evaluate the reduced blur radius sweep conditions (96)
 instead of the full factorial (120):
 
 ```sh
@@ -92,8 +92,10 @@ Results are appended to `results/results.jsonl`.
 uv run vlm-perception analyse
 ```
 
-Prints accuracy breakdowns by model, layout (crisp-on-top vs blurred-on-top),
-spatial position, blur radius, and colour pair.
+Prints a full statistical report: depth order effect (Fisher exact, odds ratios),
+blur dose-response (Cochran-Armitage trend), zero-blur baseline (binomial test),
+model and prompt effects (chi-square with Holm-corrected pairwise comparisons),
+and a summary table.
 
 ## Experimental design
 
@@ -113,7 +115,7 @@ pairs at a fixed blur radius of 20px:
 - **spatial position** (2): crisp circle on left, crisp circle on right
 - **colour pairs** (30): 6 x 5 hue combinations, excluding same-colour
 
-### Blur radius sweep (80 conditions)
+### Blur radius sweep (96 conditions)
 
 A preliminary full-factorial study showed no significant effects of colour pair
 or spatial position. The blur sweep therefore uses a reduced design to
