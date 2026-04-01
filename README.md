@@ -92,7 +92,7 @@ Results are appended to `results/results.jsonl`.
 uv run vlm-perception plot --results-path results/results.jsonl
 ```
 
-Generates dose-response and prompt invariance charts as PDF, PNG, and SVG.
+Generates dose-response and prompt invariance charts as PDF.
 
 ### Analyse results
 
