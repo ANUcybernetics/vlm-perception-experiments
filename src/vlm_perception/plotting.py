@@ -151,7 +151,7 @@ def prompt_invariance_chart(df: pl.DataFrame) -> alt.Chart:
         ),
     )
 
-    return _configure((chance + lines).properties(width=350, height=250))
+    return _configure((chance + lines).properties(width=500, height=250))
 
 
 def save_chart(chart: alt.Chart, output: Path) -> None:
