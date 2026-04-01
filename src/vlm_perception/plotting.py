@@ -6,6 +6,18 @@ import polars as pl
 from vlm_perception.analysis import _balanced_sweep, _valid
 from vlm_perception.storage import load_results
 
+FONT = "Libertinus Sans"
+
+
+def _configure(chart: alt.Chart | alt.FacetChart) -> alt.Chart | alt.FacetChart:
+    return chart.configure(
+        font=FONT,
+    ).configure_legend(
+        orient="bottom",
+        direction="horizontal",
+    )
+
+
 MODEL_ORDER = [
     "claude-haiku-4-5",
     "claude-opus-4-6",
@@ -90,7 +102,7 @@ def dose_response_chart(df: pl.DataFrame) -> alt.Chart:
             ),
         )
     )
-    return chart
+    return _configure(chart)
 
 
 def _prepare_prompt_invariance(df: pl.DataFrame) -> pl.DataFrame:
@@ -139,7 +151,7 @@ def prompt_invariance_chart(df: pl.DataFrame) -> alt.Chart:
         ),
     )
 
-    return (chance + lines).properties(width=350, height=250)
+    return _configure((chance + lines).properties(width=350, height=250))
 
 
 def save_chart(chart: alt.Chart, output: Path) -> None:
