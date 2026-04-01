@@ -119,7 +119,7 @@ def prompt_invariance_chart(df: pl.DataFrame) -> alt.Chart:
         strokeDash=[4, 4], stroke="grey", strokeWidth=1
     ).encode(y=alt.datum(50))
 
-    points = alt.Chart(data).mark_circle(size=50, opacity=0.7).encode(
+    lines = alt.Chart(data).mark_line(point=True).encode(
         x=alt.X(
             "prompt_label:N",
             title="Prompt variant",
@@ -135,10 +135,11 @@ def prompt_invariance_chart(df: pl.DataFrame) -> alt.Chart:
             "model_label:N",
             title="Model",
             sort=label_order,
+            scale=alt.Scale(scheme="dark2"),
         ),
     )
 
-    return (chance + points).properties(width=350, height=250)
+    return (chance + lines).properties(width=350, height=250)
 
 
 def save_chart(chart: alt.Chart, output: Path) -> None:
