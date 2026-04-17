@@ -1,0 +1,5 @@
+[secrets]
+REPLICATE_API_TOKEN = { provider = "onepass", value = "op://Personal/Replicate/credential" }
+OPENAI_API_KEY = { provider = "onepass", value = "op://Personal/OpenAI API/credential" }
+ANTHROPIC_API_KEY = { provider = "onepass", value = "op://Personal/Anthropic API/credential" }
+GOOGLE_AI_STUDIO_TOKEN = { provider = "onepass", value = "op://Personal/Google AI Studio/credential" }
