@@ -45,13 +45,16 @@ PROMPT_LABELS = {
     "minimal": "Minimal",
     "foreground": "Foreground",
     "psychophysics": "Psychophysics",
-    "cot": "CoT",
+    "cot": "Scripted CoT",
     "thinking": "Thinking",
 }
 
 
-def _prepare_dose_response(df: pl.DataFrame) -> pl.DataFrame:
-    sweep = _balanced_sweep(_valid(df))
+def _prepare_dose_response(df: pl.DataFrame, exclude_thinking: bool = True) -> pl.DataFrame:
+    valid = _valid(df)
+    if exclude_thinking:
+        valid = valid.filter(pl.col("prompt_id") != "thinking")
+    sweep = _balanced_sweep(valid)
     grouped = (
         sweep.group_by("model", "blur_px", "crisp_on_top")
         .agg(
@@ -70,8 +73,8 @@ def _prepare_dose_response(df: pl.DataFrame) -> pl.DataFrame:
     return grouped
 
 
-def dose_response_chart(df: pl.DataFrame) -> alt.Chart:
-    data = _prepare_dose_response(df)
+def dose_response_chart(df: pl.DataFrame, exclude_thinking: bool = True) -> alt.Chart:
+    data = _prepare_dose_response(df, exclude_thinking=exclude_thinking)
     label_order = [MODEL_LABELS[m] for m in MODEL_ORDER if m in MODEL_LABELS]
 
     base = alt.Chart(data)
@@ -106,9 +109,9 @@ def dose_response_chart(df: pl.DataFrame) -> alt.Chart:
 
 
 def _prepare_prompt_invariance(df: pl.DataFrame) -> pl.DataFrame:
-    valid = _valid(df).filter(~pl.col("crisp_on_top"))
+    valid = _valid(df)
     grouped = (
-        valid.group_by("prompt_id", "model")
+        valid.group_by("prompt_id", "model", "crisp_on_top")
         .agg(
             pl.col("correct").sum().alias("k"),
             pl.col("correct").count().alias("n"),
@@ -117,6 +120,10 @@ def _prepare_prompt_invariance(df: pl.DataFrame) -> pl.DataFrame:
             (pl.col("k") / pl.col("n") * 100).alias("accuracy"),
             pl.col("model").replace(MODEL_LABELS).alias("model_label"),
             pl.col("prompt_id").replace(PROMPT_LABELS).alias("prompt_label"),
+            pl.when(pl.col("crisp_on_top"))
+            .then(pl.lit("Crisp on top (bias-congruent)"))
+            .otherwise(pl.lit("Blurred on top (bias-incongruent)"))
+            .alias("depth_order"),
         )
     )
     return grouped
@@ -127,11 +134,13 @@ def prompt_invariance_chart(df: pl.DataFrame) -> alt.Chart:
     label_order = [MODEL_LABELS[m] for m in MODEL_ORDER if m in MODEL_LABELS]
     prompt_label_order = [PROMPT_LABELS[p] for p in PROMPT_ORDER]
 
-    chance = alt.Chart(data).mark_rule(
+    base = alt.Chart(data)
+
+    chance = base.mark_rule(
         strokeDash=[4, 4], stroke="grey", strokeWidth=1
     ).encode(y=alt.datum(50))
 
-    lines = alt.Chart(data).mark_line(point=True).encode(
+    lines = base.mark_line(point=True).encode(
         x=alt.X(
             "prompt_label:N",
             title="Prompt variant",
@@ -140,8 +149,8 @@ def prompt_invariance_chart(df: pl.DataFrame) -> alt.Chart:
         ),
         y=alt.Y(
             "accuracy:Q",
-            title="Accuracy (%, bias-incongruent)",
-            scale=alt.Scale(domain=[0, 60]),
+            title="Accuracy (%)",
+            scale=alt.Scale(domain=[0, 100]),
         ),
         color=alt.Color(
             "model_label:N",
@@ -151,7 +160,22 @@ def prompt_invariance_chart(df: pl.DataFrame) -> alt.Chart:
         ),
     )
 
-    return _configure((chance + lines).properties(width=500, height=250))
+    chart = (
+        (chance + lines)
+        .properties(width=320, height=240)
+        .facet(
+            column=alt.Column(
+                "depth_order:N",
+                title=None,
+                sort=[
+                    "Crisp on top (bias-congruent)",
+                    "Blurred on top (bias-incongruent)",
+                ],
+                header=alt.Header(labelFontSize=13, labelFontWeight="bold"),
+            ),
+        )
+    )
+    return _configure(chart)
 
 
 def save_chart(chart: alt.Chart, output: Path) -> None:
