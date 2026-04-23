@@ -78,7 +78,9 @@ first N conditions. Use `--prompt <id>` to select a prompt variant (default:
 - **foreground** --- uses explicit foreground/background terminology
 - **psychophysics** --- experimental framing mentioning sharpness and blur
 - **cot** --- chain-of-thought: asks the model to reason step by step about edge
-  continuity in the overlap region before answering
+  continuity in the overlap region before answering. The MAD'26 paper labels
+  this "Scripted CoT" to distinguish prescribed-step prompting from the
+  free-form reasoning that the `thinking` variant enables.
 - **thinking** --- same text as `neutral` but enables provider-level reasoning
   tokens (Anthropic extended thinking / OpenAI `reasoning_effort="medium"`)
 
@@ -104,6 +106,30 @@ Prints a full statistical report: depth order effect (Fisher exact, odds ratios)
 blur dose-response (Cochran-Armitage trend), zero-blur baseline (binomial test),
 model and prompt effects (chi-square with Holm-corrected pairwise comparisons),
 and a summary table.
+
+### Judge reasoning traces
+
+```sh
+uv run vlm-perception judge --concurrency 12
+```
+
+Uses Claude Sonnet 4.6 as an automated judge to label each reasoning trace
+(from `cot` and `thinking` prompts) on bias-incongruent trials along seven
+boolean dimensions related to the verbal heuristic ("sharp = closer")
+hypothesis. See `src/vlm_perception/judge.py` for the rubric and the
+self-judgment-bias caveat. Judgments append to `results/judgments.jsonl`.
+
+By default only bias-incongruent trials are judged (where the heuristic drives
+errors). Use `--include-bias-congruent` to judge both conditions, `--limit N`
+to test on a subset first.
+
+Aggregate the labels into per-model frequency tables:
+
+```sh
+uv run vlm-perception analyse-judgments
+```
+
+Outputs separate breakdowns for the `cot` and `thinking` prompts.
 
 ## Experimental design
 

@@ -52,6 +52,18 @@ Results append to `results/results.jsonl`. Analyse with:
 uv run vlm-perception analyse
 ```
 
+Categorise reasoning traces from `cot` and `thinking` prompts using Claude
+Sonnet 4.6 as an automated judge:
+
+```sh
+uv run vlm-perception judge --concurrency 12   # judge all bias-incongruent traces
+uv run vlm-perception analyse-judgments        # per-model frequency tables
+```
+
+Judgments append to `results/judgments.jsonl`. Note: `cot` is labelled
+"Scripted CoT" in the MAD'26 paper to distinguish it from free-form
+reasoning-token output (which is what the `thinking` prompt enables).
+
 Run tests with:
 
 ```sh
@@ -117,8 +129,13 @@ significant effects of colour pair or spatial position:
     and summary table. Handles blur=20 imbalance via balanced sweep subset.
   - `plotting.py` --- Altair-based figure generation (dose-response curves,
     prompt invariance charts) with PDF/PNG/SVG export
-  - `cli.py` --- typer CLI with `generate`, `evaluate`, `analyse`, `plot`
-    subcommands
+  - `judge.py` --- LLM-as-judge categorisation of MLLM reasoning traces
+    using Claude Sonnet 4.6 with structured tool-use output. Labels seven
+    boolean dimensions per trace (sharp/closer articulation, occlusion
+    reasoning, self-correction, etc.). See module docstring for the rubric
+    and the self-judgment-bias caveat.
+  - `cli.py` --- typer CLI with `generate`, `evaluate`, `analyse`, `plot`,
+    `judge`, `analyse-judgments` subcommands
 - `tests/` --- pytest tests
 
 ## Results JSONL schema
