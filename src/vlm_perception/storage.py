@@ -43,7 +43,10 @@ async def async_append_result(
 
 
 def load_results(path: Path) -> pl.DataFrame:
-    return pl.read_ndjson(path)
+    # Large infer_schema_length so sparse fields like `reasoning_trace`
+    # (only populated for `cot` and `thinking` prompt variants) are
+    # detected even when the early rows in the file are non-reasoning runs.
+    return pl.read_ndjson(path, infer_schema_length=20000)
 
 
 TRIAL_KEY_COLS = [
