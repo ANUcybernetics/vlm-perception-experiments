@@ -252,6 +252,57 @@ def analyse(
 
 
 DEFAULT_FIGURES_DIR = Path("figures")
+DEFAULT_JUDGMENTS_PATH = Path("results/judgments.jsonl")
+
+
+@app.command()
+def judge(
+    results_path: Path = typer.Option(
+        DEFAULT_RESULTS_PATH, help="JSONL file with results to judge"
+    ),
+    output_path: Path = typer.Option(
+        DEFAULT_JUDGMENTS_PATH, help="JSONL file for trace judgments"
+    ),
+    limit: int = typer.Option(
+        0, help="Max traces to judge (0 = all)"
+    ),
+    concurrency: int = typer.Option(
+        8, help="Max concurrent Anthropic requests"
+    ),
+    include_bias_congruent: bool = typer.Option(
+        False,
+        help="Also judge bias-congruent traces (default: incongruent only)",
+    ),
+) -> None:
+    """Run LLM-as-judge categorisation of MLLM reasoning traces.
+
+    Uses Claude Sonnet 4.6 to label each trace along seven boolean
+    dimensions related to the verbal heuristic (sharp = closer) hypothesis.
+    See `src/vlm_perception/judge.py` for label definitions and the
+    self-judgment-bias caveat.
+    """
+    from vlm_perception.judge import run_judge
+
+    run_judge(
+        results_path,
+        output_path,
+        limit=limit if limit > 0 else None,
+        concurrency=concurrency,
+        only_bias_incongruent=not include_bias_congruent,
+    )
+    typer.echo(f"Judgments written to {output_path}")
+
+
+@app.command()
+def analyse_judgments(
+    judgments_path: Path = typer.Option(
+        DEFAULT_JUDGMENTS_PATH, help="JSONL file with trace judgments"
+    ),
+) -> None:
+    """Print per-model trace-judgment label frequencies."""
+    from vlm_perception.judge import judgment_summary
+
+    typer.echo(judgment_summary(judgments_path))
 
 
 @app.command()
