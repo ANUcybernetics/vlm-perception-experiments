@@ -197,7 +197,7 @@ def test_full_report_on_synthetic(tmp_path):
     assert "Data summary" in report
     assert "crisp-in-front bias" in report
     assert "Accuracy by blur level" in report
-    assert "Blur dose-response" in report
+    assert "Blur stimulus-response" in report
     assert "depth order interaction" in report
     assert "Zero-blur baseline" in report
     assert "Model differences" in report

@@ -127,7 +127,7 @@ significant effects of colour pair or spatial position:
   - `analysis.py` --- paper-quality statistical analysis with Fisher exact,
     Cochran-Armitage trend, chi-square, Holm-Bonferroni pairwise comparisons,
     and summary table. Handles blur=20 imbalance via balanced sweep subset.
-  - `plotting.py` --- Altair-based figure generation (dose-response curves,
+  - `plotting.py` --- Altair-based figure generation (stimulus-response curves,
     prompt invariance charts) with PDF/PNG/SVG export
   - `judge.py` --- LLM-as-judge categorisation of MLLM reasoning traces using
     Claude Sonnet 4.6 with structured tool-use output. Labels seven boolean

@@ -50,7 +50,7 @@ PROMPT_LABELS = {
 }
 
 
-def _prepare_dose_response(df: pl.DataFrame, exclude_thinking: bool = True) -> pl.DataFrame:
+def _prepare_stimulus_response(df: pl.DataFrame, exclude_thinking: bool = True) -> pl.DataFrame:
     valid = _valid(df)
     if exclude_thinking:
         valid = valid.filter(pl.col("prompt_id") != "thinking")
@@ -73,8 +73,8 @@ def _prepare_dose_response(df: pl.DataFrame, exclude_thinking: bool = True) -> p
     return grouped
 
 
-def dose_response_chart(df: pl.DataFrame, exclude_thinking: bool = True) -> alt.Chart:
-    data = _prepare_dose_response(df, exclude_thinking=exclude_thinking)
+def stimulus_response_chart(df: pl.DataFrame, exclude_thinking: bool = True) -> alt.Chart:
+    data = _prepare_stimulus_response(df, exclude_thinking=exclude_thinking)
     label_order = [MODEL_LABELS[m] for m in MODEL_ORDER if m in MODEL_LABELS]
 
     base = alt.Chart(data)
@@ -197,10 +197,10 @@ def generate_figures(results_path: Path, output_dir: Path) -> list[Path]:
 
     paths = []
 
-    dose_path = output_dir / "dose_response.pdf"
-    chart = dose_response_chart(df)
-    save_chart(chart, dose_path)
-    paths.append(dose_path)
+    stimulus_path = output_dir / "stimulus_response.pdf"
+    chart = stimulus_response_chart(df)
+    save_chart(chart, stimulus_path)
+    paths.append(stimulus_path)
 
     prompt_path = output_dir / "prompt_invariance.pdf"
     chart = prompt_invariance_chart(df)

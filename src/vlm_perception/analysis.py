@@ -292,13 +292,13 @@ def _blur_accuracy_curves(df: pl.DataFrame) -> str:
     return "\n".join(lines)
 
 
-def _blur_dose_response(df: pl.DataFrame) -> str:
+def _blur_stimulus_response(df: pl.DataFrame) -> str:
     sweep = _balanced_sweep(_valid(df))
     blur_levels = sorted(sweep["blur_px"].unique().to_list())
     scores = np.array(blur_levels)
 
     lines = [
-        "## 4. Blur dose-response",
+        "## 4. Blur stimulus-response",
         "",
         "Cochran-Armitage test for trend in accuracy across blur levels. "
         "A significant negative z for bias-incongruent trials confirms that "
@@ -861,7 +861,7 @@ def full_report(results_path: Path) -> str:
         _data_summary(df),
         _depth_order_bias(df),
         _blur_accuracy_curves(df),
-        _blur_dose_response(df),
+        _blur_stimulus_response(df),
         _blur_x_depth_interaction(df),
         _zero_blur_baseline(df),
         _model_comparison(df),

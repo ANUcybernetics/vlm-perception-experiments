@@ -95,7 +95,7 @@ Results are appended to `results/results.jsonl`.
 uv run vlm-perception plot --results-path results/results.jsonl
 ```
 
-Generates dose-response and prompt invariance charts as PDF.
+Generates stimulus-response and prompt invariance charts as PDF.
 
 ### Analyse results
 
@@ -104,7 +104,7 @@ uv run vlm-perception analyse
 ```
 
 Prints a full statistical report: depth order effect (Fisher exact, odds
-ratios), blur dose-response (Cochran-Armitage trend), zero-blur baseline
+ratios), blur stimulus-response (Cochran-Armitage trend), zero-blur baseline
 (binomial test), model and prompt effects (chi-square with Holm-corrected
 pairwise comparisons), and a summary table.
 
