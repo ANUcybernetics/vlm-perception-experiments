@@ -15,6 +15,9 @@ from vlm_perception.models import Colour
 # A cell pairs an optional real glyph with an optional robot glyph.
 # (None, None) is a blank cell from a space in the real stream.
 Cell = tuple[str | None, str | None]
+# A row is a horizontal run of cells; a layout is a list of rows.
+Row = list[Cell]
+Layout = list[Row]
 
 
 class ScotomaStyle(BaseModel):
@@ -42,7 +45,7 @@ class ScotomaStyle(BaseModel):
         return self.offset_fraction * self.font_size
 
 
-def pair_streams(real: str, robot: str) -> list[list[Cell]]:
+def pair_streams(real: str, robot: str) -> Layout:
     """Pair the two streams into rows of glyph cells.
 
     The real stream drives layout: newlines break rows, spaces emit blank
@@ -61,10 +64,10 @@ def pair_streams(real: str, robot: str) -> list[list[Cell]]:
             f"characters but robot has {len(robot)} (after stripping newlines)"
         )
 
-    rows: list[list[Cell]] = []
+    rows: Layout = []
     robot_chars = iter(robot)
     for line in real.split("\n"):
-        row: list[Cell] = []
+        row: Row = []
         for char in line:
             if char == " ":
                 row.append((None, None))
@@ -72,4 +75,38 @@ def pair_streams(real: str, robot: str) -> list[list[Cell]]:
                 partner = next(robot_chars)
                 row.append((char, partner if partner != " " else None))
         rows.append(row)
+    return rows
+
+
+def pair_aligned(real: str, robot: str) -> Layout:
+    """Pair two equal-length streams position-by-position (symmetric).
+
+    Unlike ``pair_streams``, neither stream drives layout: cell *i* holds
+    ``real[i]`` and ``robot[i]``, with spaces rendered as gaps in their own
+    stream. The two strings must be the same length and break lines at the
+    same positions. This is the pairing used by the reciprocal diptych,
+    where the same pair must encode cleanly in both role orderings.
+    """
+    real = real.upper()
+    robot = robot.upper()
+    if len(real) != len(robot):
+        raise ValueError(
+            f"Aligned streams must be equal length: {len(real)} vs {len(robot)}"
+        )
+
+    rows: Layout = [[]]
+    for r_char, b_char in zip(real, robot, strict=True):
+        if r_char == "\n" or b_char == "\n":
+            if r_char != b_char:
+                raise ValueError(
+                    "Aligned streams must break lines at the same position"
+                )
+            rows.append([])
+            continue
+        rows[-1].append(
+            (
+                r_char if r_char != " " else None,
+                b_char if b_char != " " else None,
+            )
+        )
     return rows

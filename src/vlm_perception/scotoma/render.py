@@ -4,7 +4,12 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
-from vlm_perception.scotoma.models import ScotomaStyle, pair_streams
+from vlm_perception.scotoma.models import (
+    Layout,
+    ScotomaStyle,
+    pair_aligned,
+    pair_streams,
+)
 
 FONT_PATH = Path(__file__).parent / "fonts" / "Jost-wght.ttf"
 
@@ -16,7 +21,7 @@ def _load_font(style: ScotomaStyle) -> ImageFont.FreeTypeFont:
 
 
 def _cell_metrics(
-    rows: list[list[tuple[str | None, str | None]]],
+    rows: Layout,
     font: ImageFont.FreeTypeFont,
     style: ScotomaStyle,
 ) -> tuple[float, float]:
@@ -41,8 +46,11 @@ def render_scotoma(
         style = ScotomaStyle()
     if not real.strip():
         raise ValueError("Real text is empty")
+    return _render_rows(pair_streams(real, robot), style)
 
-    rows = pair_streams(real, robot)
+
+def _render_rows(rows: Layout, style: ScotomaStyle) -> Image.Image:
+    """Composite already-paired rows of cells into a Scotoma image."""
     font = _load_font(style)
     cell_w, cell_h = _cell_metrics(rows, font, style)
 
@@ -88,3 +96,34 @@ def render_scotoma(
     canvas = Image.alpha_composite(canvas, back)
     canvas = Image.alpha_composite(canvas, front)
     return canvas.convert("RGB")
+
+
+def render_diptych(
+    top: str, bottom: str, style: ScotomaStyle | None = None
+) -> Image.Image:
+    """Render the reciprocal diptych of two strings.
+
+    The Scotoma encoding is symmetric, so the same pair yields two panels
+    that swap who reads what. The top panel puts ``top`` in the blurred
+    foreground (humans read ``top``, VLMs read ``bottom``); the bottom
+    panel reverses the roles (humans read ``bottom``, VLMs read ``top``).
+    Read down the human column and the machine column and the two
+    messages are exchanged.
+    """
+    if style is None:
+        style = ScotomaStyle()
+    if not top.strip() or not bottom.strip():
+        raise ValueError("Both diptych messages must be non-empty")
+    panel_top = _render_rows(pair_aligned(top, bottom), style)
+    panel_bottom = _render_rows(pair_aligned(bottom, top), style)
+
+    gap = round(style.font_size * 0.5)
+    bg = style.background_grey
+    width = max(panel_top.width, panel_bottom.width)
+    height = panel_top.height + gap + panel_bottom.height
+    canvas = Image.new("RGB", (width, height), (bg, bg, bg))
+    canvas.paste(panel_top, ((width - panel_top.width) // 2, 0))
+    canvas.paste(
+        panel_bottom, ((width - panel_bottom.width) // 2, panel_top.height + gap)
+    )
+    return canvas

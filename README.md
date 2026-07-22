@@ -199,6 +199,19 @@ control), and `--colour-real` / `--colour-robot`. The two streams must differ in
 colour: same-colour glyphs merge into one silhouette with no occlusion edge, so
 there is no cue for anyone.
 
+Because the encoding is symmetric, the `diptych` subcommand renders the same two
+messages as a stacked pair of panels that swap who reads what --- a human reads
+the top message down one panel and the bottom message down the other, while a
+VLM reads them the other way around:
+
+```sh
+uv run vlm-perception scotoma diptych \
+  --top "TRUST THE HUMAN" --bottom "TRUST THE ROBOT" -o diptych.png
+```
+
+The two messages must be the same length (the diptych pairs them
+position-by-position rather than letting one drive the layout).
+
 Scotoma is a riff on [Decoy Font](https://mixfont.com) (Eric Lu, 2026), which
 first hid a message from VLMs behind crisp decoy letterforms; its sibling Ghost
 Font does the same trick with motion. Scotoma's twist is to ground the effect in

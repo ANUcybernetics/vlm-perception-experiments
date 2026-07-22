@@ -361,5 +361,43 @@ def scotoma_render(
     typer.echo(f"Saved {output} ({img.width}x{img.height})")
 
 
+@scotoma_app.command("diptych")
+def scotoma_diptych(
+    top: str = typer.Option(
+        ..., help="First message (human reads it in the top panel)"
+    ),
+    bottom: str = typer.Option(
+        ..., help="Second message (human reads it in the bottom panel)"
+    ),
+    output: Path = typer.Option(Path("scotoma-diptych.png"), "--output", "-o"),
+    font_size: int = typer.Option(96, help="Font size in px"),
+    blur_fraction: float = typer.Option(
+        0.06, help="Blur radius as fraction of font size"
+    ),
+    offset_fraction: float = typer.Option(
+        0.35, help="Diagonal layer separation as fraction of font size"
+    ),
+    colour_real: str = typer.Option("red", help="Colour of the human (blurred) stream"),
+    colour_robot: str = typer.Option("cyan", help="Colour of the VLM (crisp) stream"),
+    background_grey: int = typer.Option(128, help="Background grey level 0-255"),
+) -> None:
+    """Render the reciprocal diptych: two panels that swap who reads what."""
+    from vlm_perception.models import Colour
+    from vlm_perception.scotoma import ScotomaStyle, render_diptych
+
+    style = ScotomaStyle(
+        font_size=font_size,
+        blur_fraction=blur_fraction,
+        offset_fraction=offset_fraction,
+        colour_real=Colour(colour_real),
+        colour_robot=Colour(colour_robot),
+        background_grey=background_grey,
+    )
+    img = render_diptych(top, bottom, style)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    img.save(output)
+    typer.echo(f"Saved {output} ({img.width}x{img.height})")
+
+
 if __name__ == "__main__":
     app()
