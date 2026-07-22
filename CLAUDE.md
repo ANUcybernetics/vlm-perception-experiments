@@ -37,14 +37,14 @@ Available models: `claude-opus-4-6`, `claude-sonnet-4-6`, `claude-haiku-4-5`,
 first N conditions. Use `--prompt <id>` to select a prompt variant (default:
 `neutral`). Use `--concurrency N` to set max concurrent requests per provider
 (default: 10). Use `--resume` to skip already-completed trials (based on
-existing results file). Use `--blur-sweep` to evaluate the reduced blur sweep conditions
-(96) instead of the full factorial (120). Available prompts: `neutral`,
-`minimal`, `foreground`, `psychophysics`, `cot`, `thinking`. Prompt definitions
-are in `src/vlm_perception/prompts.json`.
+existing results file). Use `--blur-sweep` to evaluate the reduced blur sweep
+conditions (96) instead of the full factorial (120). Available prompts:
+`neutral`, `minimal`, `foreground`, `psychophysics`, `cot`, `thinking`. Prompt
+definitions are in `src/vlm_perception/prompts.json`.
 
-Evaluation runs concurrently (asyncio with per-provider semaphore). With
-default concurrency=10, a full blur sweep (96 conditions x 3 reps x 6 models x
-6 prompts = 10,368 trials) takes ~15 minutes.
+Evaluation runs concurrently (asyncio with per-provider semaphore). With default
+concurrency=10, a full blur sweep (96 conditions x 3 reps x 6 models x 6 prompts
+= 10,368 trials) takes ~15 minutes.
 
 Results append to `results/results.jsonl`. Analyse with:
 
@@ -60,9 +60,9 @@ uv run vlm-perception judge --concurrency 12   # judge all bias-incongruent trac
 uv run vlm-perception analyse-judgments        # per-model frequency tables
 ```
 
-Judgments append to `results/judgments.jsonl`. Note: `cot` is labelled
-"Scripted CoT" in the MAD'26 paper to distinguish it from free-form
-reasoning-token output (which is what the `thinking` prompt enables).
+Judgments append to `results/judgments.jsonl`. Note: `cot` is labelled "Scripted
+CoT" in the MAD'26 paper to distinguish it from free-form reasoning-token output
+(which is what the `thinking` prompt enables).
 
 Run tests with:
 
@@ -129,13 +129,18 @@ significant effects of colour pair or spatial position:
     and summary table. Handles blur=20 imbalance via balanced sweep subset.
   - `plotting.py` --- Altair-based figure generation (dose-response curves,
     prompt invariance charts) with PDF/PNG/SVG export
-  - `judge.py` --- LLM-as-judge categorisation of MLLM reasoning traces
-    using Claude Sonnet 4.6 with structured tool-use output. Labels seven
-    boolean dimensions per trace (sharp/closer articulation, occlusion
-    reasoning, self-correction, etc.). See module docstring for the rubric
-    and the self-judgment-bias caveat.
+  - `judge.py` --- LLM-as-judge categorisation of MLLM reasoning traces using
+    Claude Sonnet 4.6 with structured tool-use output. Labels seven boolean
+    dimensions per trace (sharp/closer articulation, occlusion reasoning,
+    self-correction, etc.). See module docstring for the rubric and the
+    self-judgment-bias caveat.
   - `cli.py` --- typer CLI with `generate`, `evaluate`, `analyse`, `plot`,
-    `judge`, `analyse-judgments` subcommands
+    `judge`, `analyse-judgments` subcommands, plus the `scotoma` sub-app
+  - `scotoma/` --- the dual-stream typeface spin-off (see README). `models.py`
+    (`ScotomaStyle`, `pair_streams`), `render.py` (`render_scotoma`, pure
+    Pillow), `fonts/` (vendored Jost\*, OFL). Uppercase-only; the real stream
+    drives layout, both layers are offset symmetrically about the cell centre so
+    only blur distinguishes foreground from background.
 - `tests/` --- pytest tests
 
 ## Results JSONL schema

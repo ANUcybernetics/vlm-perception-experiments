@@ -6,9 +6,7 @@ import typer
 from vlm_perception.evaluate import DEFAULT_PROMPT_ID, load_prompts
 from vlm_perception.models import MODEL_REGISTRY
 
-app = typer.Typer(
-    help="VLM perception experiment: crisp vs blurred circle occlusion."
-)
+app = typer.Typer(help="VLM perception experiment: crisp vs blurred circle occlusion.")
 
 DEFAULT_STIMULI_DIR = Path("stimuli")
 DEFAULT_RESULTS_PATH = Path("results/results.jsonl")
@@ -53,9 +51,7 @@ def evaluate(
         [DEFAULT_PROMPT_ID],
         help=f"Prompt ID(s). Available: {AVAILABLE_PROMPTS}",
     ),
-    limit: int = typer.Option(
-        0, help="Max conditions to evaluate (0 = all)"
-    ),
+    limit: int = typer.Option(0, help="Max conditions to evaluate (0 = all)"),
     concurrency: int = typer.Option(
         DEFAULT_CONCURRENCY, help="Max concurrent requests per provider"
     ),
@@ -140,9 +136,7 @@ async def _evaluate_async(
                 needed = max(0, reps - already_done)
                 skipped += reps - needed
                 for _rep in range(needed):
-                    trials.append(
-                        (m, pid, specs[m].provider, 0, ci)
-                    )
+                    trials.append((m, pid, specs[m].provider, 0, ci))
 
     total = len(trials)
     if resume and skipped > 0:
@@ -214,11 +208,7 @@ async def _evaluate_async(
             status = (
                 "correct"
                 if result.correct
-                else (
-                    "incorrect"
-                    if result.correct is False
-                    else "unparseable"
-                )
+                else ("incorrect" if result.correct is False else "unparseable")
             )
             typer.echo(
                 f"  [{completed}/{total}] {model_name} {prompt_id} "
@@ -226,10 +216,7 @@ async def _evaluate_async(
                 f"-> {result.parsed_answer} ({status})"
             )
 
-    tasks = [
-        run_trial(m, pid, prov, ci)
-        for m, pid, prov, _rep, ci in trials
-    ]
+    tasks = [run_trial(m, pid, prov, ci) for m, pid, prov, _rep, ci in trials]
     await asyncio.gather(*tasks)
 
     error_msg = f" ({n_errors} errors)" if n_errors else ""
@@ -263,12 +250,8 @@ def judge(
     output_path: Path = typer.Option(
         DEFAULT_JUDGMENTS_PATH, help="JSONL file for trace judgments"
     ),
-    limit: int = typer.Option(
-        0, help="Max traces to judge (0 = all)"
-    ),
-    concurrency: int = typer.Option(
-        8, help="Max concurrent Anthropic requests"
-    ),
+    limit: int = typer.Option(0, help="Max traces to judge (0 = all)"),
+    concurrency: int = typer.Option(8, help="Max concurrent Anthropic requests"),
     include_bias_congruent: bool = typer.Option(
         False,
         help="Also judge bias-congruent traces (default: incongruent only)",
@@ -320,6 +303,62 @@ def plot(
     paths = generate_figures(results_path, output_dir)
     for p in paths:
         typer.echo(f"Saved {p}")
+
+
+scotoma_app = typer.Typer(
+    help="Scotoma: dual-stream typeface exploiting occlusion edge blur."
+)
+app.add_typer(scotoma_app, name="scotoma")
+
+
+@scotoma_app.command("render")
+def scotoma_render(
+    real: str = typer.Option(
+        None, help="Real (human-readable) text; literal \\n breaks lines"
+    ),
+    robot: str = typer.Option(None, help="Robot text (same printable length)"),
+    real_file: Path = typer.Option(None, help="Read real text from file"),
+    robot_file: Path = typer.Option(None, help="Read robot text from file"),
+    output: Path = typer.Option(Path("scotoma.png"), "--output", "-o"),
+    font_size: int = typer.Option(96, help="Font size in px"),
+    blur_fraction: float = typer.Option(
+        0.06, help="Gaussian blur radius as fraction of font size (0 = crisp)"
+    ),
+    offset_fraction: float = typer.Option(
+        0.35, help="Total diagonal layer separation as fraction of font size"
+    ),
+    colour_real: str = typer.Option("red", help="Colour of the real stream"),
+    colour_robot: str = typer.Option("cyan", help="Colour of the robot stream"),
+    background_grey: int = typer.Option(128, help="Background grey level 0-255"),
+    crisp_on_top: bool = typer.Option(
+        False, help="Composite the crisp robot layer in front (congruent control)"
+    ),
+) -> None:
+    """Render two text streams as a Scotoma image."""
+    from vlm_perception.models import Colour
+    from vlm_perception.scotoma import ScotomaStyle, render_scotoma
+
+    if (real is None) == (real_file is None):
+        raise typer.BadParameter("Provide exactly one of --real / --real-file")
+    if (robot is None) == (robot_file is None):
+        raise typer.BadParameter("Provide exactly one of --robot / --robot-file")
+
+    real_text = real_file.read_text() if real_file else real.replace("\\n", "\n")
+    robot_text = robot_file.read_text() if robot_file else robot
+
+    style = ScotomaStyle(
+        font_size=font_size,
+        blur_fraction=blur_fraction,
+        offset_fraction=offset_fraction,
+        colour_real=Colour(colour_real),
+        colour_robot=Colour(colour_robot),
+        background_grey=background_grey,
+        blurred_on_top=not crisp_on_top,
+    )
+    img = render_scotoma(real_text, robot_text, style)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    img.save(output)
+    typer.echo(f"Saved {output} ({img.width}x{img.height})")
 
 
 if __name__ == "__main__":
