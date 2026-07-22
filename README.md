@@ -199,9 +199,12 @@ control), and `--colour-real` / `--colour-robot`. The two streams must differ in
 colour: same-colour glyphs merge into one silhouette with no occlusion edge, so
 there is no cue for anyone.
 
-Related work: [Decoy Font](https://mixfont.com) and Ghost Font (both mid-2026)
-independently explore human-vs-VLM readable type; Scotoma differs in deriving
-its mechanism directly from the occlusion-edge-blur depth cue studied here.
+Scotoma is a riff on [Decoy Font](https://mixfont.com) (Eric Lu, 2026), which
+first hid a message from VLMs behind crisp decoy letterforms; its sibling Ghost
+Font does the same trick with motion. Scotoma's twist is to ground the effect in
+a specific depth cue --- occlusion edge blur --- studied in the circle
+experiments above, and to carry _two_ readable messages at once rather than one
+message plus a decoy.
 
 ## Licence
 
