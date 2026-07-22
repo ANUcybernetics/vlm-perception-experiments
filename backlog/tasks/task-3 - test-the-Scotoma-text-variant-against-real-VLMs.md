@@ -4,6 +4,7 @@ title: test the Scotoma text variant against real VLMs
 status: To Do
 assignee: []
 created_date: '2026-07-22 06:28'
+updated_date: '2026-07-22 06:48'
 labels: []
 dependencies: []
 ---
@@ -11,80 +12,39 @@ dependencies: []
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-Extend the occlusion-edge-blur experiment from circles to the Scotoma text
-typeface (`src/vlm_perception/scotoma/`), measuring whether VLMs read the crisp
-"robot" stream instead of the blurred "real" stream a human reads. The rendering
-side already exists; this task is the experimental harness around it.
+Extend the occlusion-edge-blur experiment from circles to the Scotoma text typeface (src/vlm_perception/scotoma/), measuring whether VLMs read the crisp "robot" stream instead of the blurred "real" stream a human reads. The rendering side already exists; this task is the experimental harness around it.
 
-Ben's starting thoughts:
+Design (settled 2026-07-22):
 
-- colour probably doesn't need varying (no effect in the circle study) --- fix
-  one pair (red/cyan).
-- blur radius is the primary factor, and offset may matter too.
-- vary the text: pick a small pool of phrases and run all combinations of them
-  in both the human (blurred/front) and robot (crisp/behind) positions. This
-  means no full Cartesian product over letters; counterbalance instead.
+1. String pool. Space-free, length-matched uppercase strings: 8 English words of 10 letters (roughly frequency-matched), plus a matched pseudoword set of the same size and length to rule out the language prior. Space-free is a hard constraint: in pair_aligned, a space in one stream renders the other stream glyph solo --- crisp and unoccluded --- leaking that stream for free. Enforce a minimum pairwise positional Hamming distance within each set (>= 8 of 10 positions differing) so the bias index is not attenuated by similar pairs, and record the pair distance d(A,B) per trial as a covariate anyway.
 
-New machinery needed beyond reusing the async dispatch:
+2. Pairing and counterbalancing. Partition each 8-string set into 4 disjoint pairs; render each pair in both role orderings (the reciprocal diptych logic) so every string appears once as real and once as robot: 8 ordered pairs per set, 16 total. Counterbalance colour-role assignment across ordered pairs (half red-real/cyan-robot, half swapped) rather than crossing it as a factor --- this removes the blur-hue confound at zero extra trials. Note ScotomaStyle currently hard-codes colour_real=red / colour_robot=cyan; the generator must set both assignments.
 
-1. Dependent variable. The circle task was binary; this one is transcription.
-   Score the model's output by normalised Levenshtein distance to BOTH streams
-   and compute a bias index `(d_real - d_robot) / (d_real + d_robot)` in [-1,
-   1]. It degrades gracefully when the model reads mush (both distances high,
-   index near 0). This is the biggest new piece --- `evaluate.py`'s left/right
-   parsing does not apply.
+3. Factors. Blur (6 levels: 0 plus 5 nonzero blur_fraction values), depth order (2: blurred-on-top exploit, crisp-on-top congruent control), 16 ordered pairs. Offset fixed at the 0.38 default for the headline sweep; an offset sub-sweep at one or two blur levels is an optional follow-up, not part of this task. Condition count: 16 x 6 x 2 = 192.
 
-2. Length-matched phrase pool. `pair_aligned` requires equal-length strings, so
-   the pool should be a set of same-length phrases (e.g. all 15 characters) so
-   any phrase can pair with any other. Ideally frequency-matched English, plus a
-   random-string / pseudoword control set to rule out the language prior doing
-   the work rather than the visual cue.
+4. Trial budget. 192 conditions x 3 reps x 4 prompts (naive, dual-stream, cot, thinking) x 6 models = 13,824 trials, plus ~288 legibility-baseline trials --- about 1.4x the 10,368-trial circle blur sweep, roughly 20 minutes at concurrency 10.
 
-3. Legibility baseline. Render each phrase solo (unblurred, no overlay) and
-   confirm each model transcribes plain Jost caps correctly first. Without this
-   a null result is uninterpretable --- we can't tell "resisted the illusion"
-   from "can't read the font at this resolution".
+5. Dependent variable. Normalise the model output (uppercase, strip non-letter characters) and score it against BOTH streams with two metrics: normalised Levenshtein (robust to dropped/inserted characters) and positional Hamming (physically meaningful, since glyph cells align position-by-position). Compute the bias index (d_real - d_robot) / (d_real + d_robot) in [-1, 1] for each metric; it degrades gracefully towards 0 when the model reads mush (both distances high). This is the biggest new piece --- the left/right parsing in evaluate.py does not apply.
 
-4. Prompt design. Naive "what does this say?" is the clean condition (it
-   measures default reading). Add an explicit "there may be two overlapping
-   messages, transcribe both" prompt, plus CoT and thinking variants mirroring
-   `prompts.json`. Note that telling the model there are two streams changes the
-   task, so keep the naive prompt as the headline measure.
+6. Legibility baseline. Render each string solo (unblurred, no overlay) and confirm each model transcribes plain Jost caps correctly first. Without this a null result is uninterpretable --- we cannot tell "resisted the illusion" from "cannot read the font at this resolution".
 
-5. Depth-order control. Render both blurred-on-top (the exploit) and
-   crisp-on-top (the congruent control, where the crisp stream genuinely is in
-   front). blur = 0 is the other key control (both streams crisp, no depth cue).
+7. Resolution pre-check. Before the main sweep, verify the chosen font/canvas size survives provider-side downsampling (Anthropic and OpenAI both resize/tile images) by running the solo-string legibility check at 2-3 candidate sizes and picking the smallest that transcribes cleanly.
 
-6. Position counterbalancing. Render each phrase pair both ways (A-real/B-robot
-   and B-real/A-robot --- the reciprocal diptych) so any phrase-intrinsic
-   legibility difference cancels out.
+8. Prompt design. Naive "what does this say?" is the headline measure (it captures default reading). Add an explicit "there may be two overlapping messages, transcribe both" prompt, plus cot and thinking variants mirroring prompts.json. Telling the model there are two streams changes the task, so the naive prompt stays primary.
 
-7. Image resolution. VLMs downsample images before their vision encoder, so fix
-   a font/canvas size large enough that the fragmented glyphs survive, and
-   sanity-check a couple of sizes rather than assuming.
+9. Storage + analysis. New JSONL schema (string_real, string_robot, blur_px, offset_fraction, blurred_on_top, colour_real, model, prompt_id, raw_transcription, dist_real_lev, dist_robot_lev, dist_real_ham, dist_robot_ham, bias_index_lev, bias_index_ham, d_pair, reasoning_trace, timestamp) in its own results file, and a new analysis path kept separate from the circle analysis: bias index vs blur (dose-response), depth-order effect, English vs pseudoword contrast, per model. The fixed balanced pool supports all of these because string pair is a nuisance factor --- only per-string effects are unestimable, and we do not need them.
 
-8. Separate storage + analysis. New JSONL schema (`phrase_real`, `phrase_robot`,
-   `blur_px`, `offset_fraction`, `blurred_on_top`, `model`, `prompt_id`,
-   `raw_transcription`, `dist_real`, `dist_robot`, `bias_index`,
-   `reasoning_trace`, `timestamp`) in its own results file, and a new analysis
-   path (bias-index dose-response over blur, depth-order effect, per-model),
-   kept separate from the circle analysis.
+10. Optional but strengthening: a small human-transcription check (n approx 5) on a handful of stimuli, to ground the "humans read the blurred stream" half of the claim, which is currently asserted from vision-science theory alone.
 
-9. Optional but strengthening: a small human-transcription check (n
-   approximately 5) on a handful of stimuli, to ground the "humans read the
-   blurred stream" half of the claim, which is currently asserted from
-   vision-science theory alone.
-
-Context: blog post at benswift.me, "A typeface for humans, not machines"
-(https://benswift.me/blog/2026/07/22/a-typeface-for-humans-not-machines/), and
-the MAD'26 paper it builds on (https://doi.org/10.1145/3810988.3812661).
+Context: blog post at benswift.me, "A typeface for humans, not machines" (https://benswift.me/blog/2026/07/22/a-typeface-for-humans-not-machines/), and the MAD 26 paper it builds on (https://doi.org/10.1145/3810988.3812661).
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A stimulus generator produces the Scotoma condition set from a length-matched phrase pool (colour fixed, blur and offset swept, both depth orders, positions counterbalanced)
-- [ ] #2 A transcription evaluate path scores each trial against both streams (normalised Levenshtein + bias index) and appends to a dedicated JSONL results file
-- [ ] #3 A per-phrase unblurred legibility baseline is captured per model, so null results are interpretable
-- [ ] #4 A random-string / pseudoword control condition is included to rule out the language prior
-- [ ] #5 Analysis reports bias index vs blur radius (dose-response) and the depth-order effect, per model
+- [ ] #1 A per-phrase unblurred legibility baseline is captured per model, so null results are interpretable
+- [ ] #2 A random-string / pseudoword control condition is included to rule out the language prior
+- [ ] #3 A stimulus generator produces the Scotoma condition set from a space-free, length-matched string pool with a minimum pairwise Hamming distance, with colour-role assignment and role order counterbalanced, blur swept, offset fixed at 0.38, and both depth orders rendered
+- [ ] #4 A transcription evaluate path normalises model output and scores each trial against both streams (normalised Levenshtein and positional Hamming, bias index for each, pair distance d(A,B) recorded) and appends to a dedicated JSONL results file
+- [ ] #5 A resolution pre-check confirms the chosen font/canvas size survives provider image downsampling before the main sweep is run
+- [ ] #6 Analysis reports bias index vs blur radius (dose-response), the depth-order effect, and the English vs pseudoword contrast, per model
 <!-- AC:END -->
