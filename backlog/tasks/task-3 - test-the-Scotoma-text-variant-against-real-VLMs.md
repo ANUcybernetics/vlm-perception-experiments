@@ -1,11 +1,11 @@
 ---
 id: TASK-3
 title: test the Scotoma text variant against real VLMs
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-22 06:28'
-updated_date: '2026-07-22 07:30'
+updated_date: '2026-07-22 09:08'
 labels: []
 dependencies: []
 ---
@@ -47,7 +47,7 @@ Context: blog post at benswift.me, "A typeface for humans, not machines" (https:
 - [x] #3 A stimulus generator produces the Scotoma condition set from a space-free, length-matched string pool with a minimum pairwise Hamming distance, with colour-role assignment and role order counterbalanced, blur swept, offset fixed at 0.38, and both depth orders rendered
 - [x] #4 A transcription evaluate path normalises model output and scores each trial against both streams (normalised Levenshtein and positional Hamming, bias index for each, pair distance d(A,B) recorded) and appends to a dedicated JSONL results file
 - [x] #5 A resolution pre-check confirms the chosen font/canvas size survives provider image downsampling before the main sweep is run
-- [ ] #6 Analysis reports bias index vs blur radius (dose-response), the depth-order effect, and the English vs pseudoword contrast, per model
+- [x] #6 Analysis reports bias index vs blur radius (dose-response), the depth-order effect, and the English vs pseudoword contrast, per model
 - [x] #7 The Scotoma evaluate path appends each trial as it completes and supports --resume, so an interrupted run (rate limits, credit exhaustion) loses no collected data and can be continued in place
 <!-- AC:END -->
 
@@ -56,3 +56,11 @@ Context: blog post at benswift.me, "A typeface for humans, not machines" (https:
 <!-- SECTION:PLAN:BEGIN -->
 1. Select string pools (8 English 10-letter words + 8 pseudowords, pairwise Hamming >= 8) via script, hard-code with tests\n2. scotoma/experiment.py: ScotomaCondition, pairing/counterbalancing, condition + legibility-baseline generators\n3. scotoma/render.py: solo-string renderer for legibility baseline\n4. scotoma/scoring.py: normalisation, Levenshtein + positional Hamming, bias indices\n5. scotoma/prompts.json + scotoma/evaluate.py: transcription evaluate path reusing provider request builders\n6. scotoma/storage.py: dedicated JSONL schema, per-trial append, resume counts\n7. scotoma/analysis.py: legibility table, bias vs blur dose-response, depth-order effect, English vs pseudoword contrast\n8. CLI: scotoma generate/evaluate/analyse/precheck subcommands\n9. Tests, then run: resolution pre-check, legibility baseline, main sweep (192 x 3 x 4 prompts x 6 models)\n10. Analyse and write up
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Experiment complete. Harness: scotoma/{experiment,scoring,evaluate,storage,analysis}.py + prompts.json, CLI subcommands scotoma generate/evaluate/analyse/precheck, tests in test_scotoma_experiment.py and test_scotoma_storage.py. Data: results/scotoma.jsonl (13,824 main + 288 legibility trials, zero API errors), pre-check in results/scotoma-precheck.jsonl (font 96 confirmed).
+
+Findings: (1) legibility baseline near-perfect for all models (nano 0.83 exact but mean lev dist 0.018). (2) Strong monotone dose-response of bias index vs blur for every model (Spearman rho 0.69-0.80, all p<0.001): models read the blurred REAL stream at blur <= 0.07 (bias -0.2 to -0.5) and flip to the crisp ROBOT stream at blur >= 0.10, reaching bias +0.89 to +0.97 at 0.14 -- the exploit works, but the crossover sits above the current 0.07 default; ScotomaStyle default blur_fraction should rise to ~0.10-0.14 for the robot-reads-crisp effect. (3) Depth-order effect significant for all models (p<0.001): crisp-on-top control gives strongly positive bias (+0.59 to +0.77). (4) English vs pseudoword: pseudoword pairs show more robot-bias for the Claude models (p<=0.03) -- the language prior helps decode the blurred stream for real words; no effect for gpt-5.4/nano. (5) Prompt largely invariant (naive/dual/cot/thinking all similar). Optional human-transcription check (item 10) not done -- deliberately left as follow-up.
+<!-- SECTION:NOTES:END -->
