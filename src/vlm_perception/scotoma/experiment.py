@@ -48,8 +48,8 @@ PSEUDO_POOL = [
 
 POOLS: dict[str, list[str]] = {"english": ENGLISH_POOL, "pseudo": PSEUDO_POOL}
 
-# 0 = no-blur baseline; 0.07 is the tuned Scotoma default. blur_px =
-# blur_fraction * font_size.
+# 0 = no-blur baseline; 0.07 was the pre-sweep Scotoma default (the
+# sweep moved it to 0.10). blur_px = blur_fraction * font_size.
 BLUR_FRACTIONS = [0.0, 0.02, 0.04, 0.07, 0.10, 0.14]
 
 DEFAULT_OFFSET_FRACTION = 0.38

@@ -322,7 +322,7 @@ def scotoma_render(
     output: Path = typer.Option(Path("scotoma.png"), "--output", "-o"),
     font_size: int = typer.Option(96, help="Font size in px"),
     blur_fraction: float = typer.Option(
-        0.07, help="Gaussian blur radius as fraction of font size (0 = crisp)"
+        0.10, help="Gaussian blur radius as fraction of font size (0 = crisp)"
     ),
     offset_fraction: float = typer.Option(
         0.38, help="Total horizontal layer separation as fraction of font size"
@@ -372,7 +372,7 @@ def scotoma_diptych(
     output: Path = typer.Option(Path("scotoma-diptych.png"), "--output", "-o"),
     font_size: int = typer.Option(96, help="Font size in px"),
     blur_fraction: float = typer.Option(
-        0.07, help="Blur radius as fraction of font size"
+        0.10, help="Blur radius as fraction of font size"
     ),
     offset_fraction: float = typer.Option(
         0.38, help="Horizontal layer separation as fraction of font size"

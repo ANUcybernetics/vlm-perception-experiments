@@ -25,7 +25,10 @@ class ScotomaStyle(BaseModel):
 
     font_size: int = Field(default=96, gt=0)
     weight: int = Field(default=900, ge=100, le=900)
-    blur_fraction: float = Field(default=0.07, ge=0.0)
+    # 0.10 sits just past the measured crossover: 97.5% of VLM
+    # transcriptions land on the crisp robot stream (task-3 sweep), while
+    # the blurred real stream stays comfortably human-readable.
+    blur_fraction: float = Field(default=0.10, ge=0.0)
     offset_fraction: float = Field(default=0.38, ge=0.0)
     tracking_fraction: float = Field(default=0.12, ge=0.0)
     line_height_fraction: float = Field(default=1.3, gt=0.0)
