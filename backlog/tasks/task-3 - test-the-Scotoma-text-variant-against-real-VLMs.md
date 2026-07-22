@@ -1,10 +1,11 @@
 ---
 id: TASK-3
 title: test the Scotoma text variant against real VLMs
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - '@claude'
 created_date: '2026-07-22 06:28'
-updated_date: '2026-07-22 07:07'
+updated_date: '2026-07-22 07:20'
 labels: []
 dependencies: []
 ---
@@ -49,3 +50,9 @@ Context: blog post at benswift.me, "A typeface for humans, not machines" (https:
 - [ ] #6 Analysis reports bias index vs blur radius (dose-response), the depth-order effect, and the English vs pseudoword contrast, per model
 - [ ] #7 The Scotoma evaluate path appends each trial as it completes and supports --resume, so an interrupted run (rate limits, credit exhaustion) loses no collected data and can be continued in place
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Select string pools (8 English 10-letter words + 8 pseudowords, pairwise Hamming >= 8) via script, hard-code with tests\n2. scotoma/experiment.py: ScotomaCondition, pairing/counterbalancing, condition + legibility-baseline generators\n3. scotoma/render.py: solo-string renderer for legibility baseline\n4. scotoma/scoring.py: normalisation, Levenshtein + positional Hamming, bias indices\n5. scotoma/prompts.json + scotoma/evaluate.py: transcription evaluate path reusing provider request builders\n6. scotoma/storage.py: dedicated JSONL schema, per-trial append, resume counts\n7. scotoma/analysis.py: legibility table, bias vs blur dose-response, depth-order effect, English vs pseudoword contrast\n8. CLI: scotoma generate/evaluate/analyse/precheck subcommands\n9. Tests, then run: resolution pre-check, legibility baseline, main sweep (192 x 3 x 4 prompts x 6 models)\n10. Analyse and write up
+<!-- SECTION:PLAN:END -->

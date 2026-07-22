@@ -51,6 +51,19 @@ def render_scotoma(
     return _render_rows(pair_streams(real, robot), style)
 
 
+def render_solo(text: str, style: ScotomaStyle | None = None) -> Image.Image:
+    """Render the real stream alone (legibility baseline, no robot layer)."""
+    if style is None:
+        style = ScotomaStyle()
+    if not text.strip():
+        raise ValueError("Text is empty")
+    rows: Layout = [
+        [(c if c != " " else None, None) for c in line]
+        for line in text.upper().split("\n")
+    ]
+    return _render_rows(rows, style)
+
+
 def _render_rows(rows: Layout, style: ScotomaStyle) -> Image.Image:
     """Composite already-paired rows of cells into a Scotoma image."""
     font = _load_font(style)

@@ -399,5 +399,281 @@ def scotoma_diptych(
     typer.echo(f"Saved {output} ({img.width}x{img.height})")
 
 
+DEFAULT_SCOTOMA_STIMULI_DIR = Path("stimuli/scotoma")
+DEFAULT_SCOTOMA_RESULTS_PATH = Path("results/scotoma.jsonl")
+
+
+@scotoma_app.command("generate")
+def scotoma_generate(
+    output_dir: Path = typer.Option(
+        DEFAULT_SCOTOMA_STIMULI_DIR, help="Directory for stimulus images"
+    ),
+    font_size: int = typer.Option(96, help="Font size in px"),
+) -> None:
+    """Generate the Scotoma experiment stimuli (main sweep + legibility solo)."""
+    from vlm_perception.scotoma.experiment import (
+        generate_stimuli,
+        legibility_conditions,
+        scotoma_conditions,
+    )
+
+    conditions = scotoma_conditions(font_size) + legibility_conditions(font_size)
+    paths = generate_stimuli(output_dir, conditions)
+    typer.echo(f"Generated {len(paths)} images in {output_dir}")
+
+
+@scotoma_app.command("evaluate")
+def scotoma_evaluate(
+    model: list[str] = typer.Option(
+        ..., help=f"Model name(s). Available: {AVAILABLE_MODELS}"
+    ),
+    prompt: list[str] = typer.Option(
+        ["naive"], help="Prompt ID(s). Available: naive, dual, cot, thinking"
+    ),
+    reps: int = typer.Option(1, help="Number of repetitions per condition"),
+    stimuli_dir: Path = typer.Option(
+        DEFAULT_SCOTOMA_STIMULI_DIR, help="Directory containing stimulus images"
+    ),
+    results_path: Path = typer.Option(
+        DEFAULT_SCOTOMA_RESULTS_PATH, help="JSONL file for results"
+    ),
+    font_size: int = typer.Option(96, help="Font size of the stimuli to evaluate"),
+    legibility: bool = typer.Option(
+        False, help="Evaluate the solo-string legibility baseline instead"
+    ),
+    limit: int = typer.Option(0, help="Max conditions to evaluate (0 = all)"),
+    concurrency: int = typer.Option(
+        DEFAULT_CONCURRENCY, help="Max concurrent requests per provider"
+    ),
+    resume: bool = typer.Option(
+        False, help="Skip trials already present in results file"
+    ),
+) -> None:
+    """Run VLM transcription evaluation on Scotoma stimuli."""
+    asyncio.run(
+        _scotoma_evaluate_async(
+            models=model,
+            prompt_ids=prompt,
+            reps=reps,
+            stimuli_dir=stimuli_dir,
+            results_path=results_path,
+            font_size=font_size,
+            legibility=legibility,
+            limit=limit,
+            concurrency=concurrency,
+            resume=resume,
+        )
+    )
+
+
+async def _scotoma_evaluate_async(
+    models: list[str],
+    prompt_ids: list[str],
+    reps: int,
+    stimuli_dir: Path,
+    results_path: Path,
+    font_size: int,
+    legibility: bool,
+    limit: int,
+    concurrency: int,
+    resume: bool,
+) -> None:
+    from vlm_perception.models import resolve_model
+    from vlm_perception.scotoma.evaluate import async_evaluate_scotoma, get_prompt
+    from vlm_perception.scotoma.experiment import (
+        legibility_conditions,
+        scotoma_conditions,
+    )
+    from vlm_perception.scotoma.storage import (
+        async_append_result,
+        existing_trial_counts,
+    )
+
+    for pid in prompt_ids:
+        get_prompt(pid)
+    specs = {m: resolve_model(m) for m in models}
+
+    conditions = (
+        legibility_conditions(font_size)
+        if legibility
+        else scotoma_conditions(font_size)
+    )
+    if limit > 0:
+        conditions = conditions[:limit]
+
+    semaphores: dict[str, asyncio.Semaphore] = {}
+    for m in models:
+        provider = specs[m].provider
+        if provider not in semaphores:
+            semaphores[provider] = asyncio.Semaphore(concurrency)
+
+    existing = existing_trial_counts(results_path) if resume else {}
+
+    trials: list[tuple[str, str, str, int]] = []
+    skipped = 0
+    for m in models:
+        for pid in prompt_ids:
+            for ci, condition in enumerate(conditions):
+                key = (
+                    specs[m].model_id,
+                    pid,
+                    condition.string_real,
+                    condition.string_robot,
+                    condition.blur_fraction,
+                    condition.blurred_on_top,
+                    condition.colour_real.value,
+                    condition.font_size,
+                )
+                already_done = existing.get(key, 0)
+                needed = max(0, reps - already_done)
+                skipped += reps - needed
+                for _rep in range(needed):
+                    trials.append((m, pid, specs[m].provider, ci))
+
+    total = len(trials)
+    if resume and skipped > 0:
+        typer.echo(f"Resuming: skipping {skipped} already-completed trials")
+    if total == 0:
+        typer.echo("All trials already completed, nothing to do.")
+        return
+    typer.echo(
+        f"Running {total} trials "
+        f"({len(models)} model(s) x {len(prompt_ids)} prompt(s) x "
+        f"{len(conditions)} conditions x {reps} reps, "
+        f"concurrency={concurrency}/provider)"
+    )
+
+    file_lock = asyncio.Lock()
+    counter_lock = asyncio.Lock()
+    completed = 0
+    n_errors = 0
+
+    async def run_trial(
+        model_name: str, prompt_id: str, provider: str, condition_idx: int
+    ) -> None:
+        nonlocal completed, n_errors
+        condition = conditions[condition_idx]
+        image_path = stimuli_dir / condition.image_filename
+        if not image_path.exists():
+            async with counter_lock:
+                completed += 1
+            typer.echo(f"  [{completed}/{total}] MISSING: {image_path}", err=True)
+            return
+
+        try:
+            result = await async_evaluate_scotoma(
+                image_path,
+                condition,
+                provider=provider,
+                model=specs[model_name].model_id,
+                prompt_id=prompt_id,
+                semaphore=semaphores[provider],
+            )
+        except Exception as exc:
+            async with counter_lock:
+                completed += 1
+                n_errors += 1
+            typer.echo(
+                f"  [{completed}/{total}] ERROR: {model_name} "
+                f"{prompt_id} {condition.image_filename} "
+                f"-> {type(exc).__name__}: {exc}",
+                err=True,
+            )
+            return
+
+        await async_append_result(result, results_path, file_lock)
+
+        async with counter_lock:
+            completed += 1
+            bias = (
+                f"bias={result.bias_index_lev:+.2f}"
+                if result.bias_index_lev is not None
+                else f"d_real={result.dist_real_lev}"
+            )
+            typer.echo(
+                f"  [{completed}/{total}] {model_name} {prompt_id} "
+                f"{condition.image_filename} "
+                f"-> {result.raw_transcription} ({bias})"
+            )
+
+    tasks = [run_trial(m, pid, prov, ci) for m, pid, prov, ci in trials]
+    await asyncio.gather(*tasks)
+
+    error_msg = f" ({n_errors} errors)" if n_errors else ""
+    typer.echo(f"\nDone{error_msg}. Results saved to {results_path}")
+
+
+@scotoma_app.command("analyse")
+def scotoma_analyse(
+    results_path: Path = typer.Option(
+        DEFAULT_SCOTOMA_RESULTS_PATH, help="JSONL file with Scotoma results"
+    ),
+) -> None:
+    """Analyse Scotoma transcription results."""
+    from vlm_perception.scotoma.analysis import full_report
+
+    typer.echo(full_report(results_path))
+
+
+@scotoma_app.command("precheck")
+def scotoma_precheck(
+    model: list[str] = typer.Option(
+        ..., help=f"Model name(s). Available: {AVAILABLE_MODELS}"
+    ),
+    font_size: list[int] = typer.Option(
+        [48, 72, 96], help="Candidate font sizes to test"
+    ),
+    stimuli_dir: Path = typer.Option(
+        Path("stimuli/scotoma-precheck"), help="Directory for precheck images"
+    ),
+    results_path: Path = typer.Option(
+        Path("results/scotoma-precheck.jsonl"), help="JSONL file for precheck results"
+    ),
+    concurrency: int = typer.Option(DEFAULT_CONCURRENCY),
+) -> None:
+    """Resolution pre-check: solo-string legibility at candidate font sizes.
+
+    Verifies the chosen font/canvas size survives provider-side image
+    downsampling before the main sweep is run.
+    """
+    import polars as pl
+
+    from vlm_perception.scotoma.experiment import (
+        generate_stimuli,
+        legibility_conditions,
+    )
+    from vlm_perception.scotoma.storage import load_results
+
+    for fs in font_size:
+        conditions = legibility_conditions(fs)
+        generate_stimuli(stimuli_dir, conditions)
+        asyncio.run(
+            _scotoma_evaluate_async(
+                models=model,
+                prompt_ids=["naive"],
+                reps=1,
+                stimuli_dir=stimuli_dir,
+                results_path=results_path,
+                font_size=fs,
+                legibility=True,
+                limit=0,
+                concurrency=concurrency,
+                resume=True,
+            )
+        )
+
+    df = load_results(results_path)
+    table = (
+        df.group_by("model", "font_size")
+        .agg(
+            pl.len().alias("n"),
+            (pl.col("dist_real_lev") == 0.0).mean().round(3).alias("exact_rate"),
+            pl.col("dist_real_lev").mean().round(4).alias("mean_dist_lev"),
+        )
+        .sort("model", "font_size")
+    )
+    typer.echo(table)
+
+
 if __name__ == "__main__":
     app()

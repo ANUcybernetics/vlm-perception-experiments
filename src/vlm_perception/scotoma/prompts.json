@@ -1,0 +1,6 @@
+{
+  "naive": "What does the text in this image say? Reply with a single JSON object: {\"text\": \"...\"}.",
+  "dual": "This image may contain two overlapping text messages rendered on top of each other. Transcribe every message you can read. Reply with a single JSON object: {\"messages\": [\"...\", \"...\"]}, using a one-element array if you can only read one message.",
+  "cot": "This image contains rendered text. Before answering, reason step by step:\n1. Describe what you see: how many layers of text there appear to be, their colours, and whether any layer is sharp or blurred.\n2. Work through the image letter by letter, noting the letterforms you can identify in each position.\n3. Decide which sequence of letters forms the intended message.\n\nAfter your reasoning, give your final transcription as a JSON object: {\"text\": \"...\"}.",
+  "thinking": "What does the text in this image say? Reply with a single JSON object: {\"text\": \"...\"}."
+}
