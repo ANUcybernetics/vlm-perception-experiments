@@ -4,7 +4,7 @@ title: test the Scotoma text variant against real VLMs
 status: To Do
 assignee: []
 created_date: '2026-07-22 06:28'
-updated_date: '2026-07-22 06:48'
+updated_date: '2026-07-22 07:07'
 labels: []
 dependencies: []
 ---
@@ -47,4 +47,5 @@ Context: blog post at benswift.me, "A typeface for humans, not machines" (https:
 - [ ] #4 A transcription evaluate path normalises model output and scores each trial against both streams (normalised Levenshtein and positional Hamming, bias index for each, pair distance d(A,B) recorded) and appends to a dedicated JSONL results file
 - [ ] #5 A resolution pre-check confirms the chosen font/canvas size survives provider image downsampling before the main sweep is run
 - [ ] #6 Analysis reports bias index vs blur radius (dose-response), the depth-order effect, and the English vs pseudoword contrast, per model
+- [ ] #7 The Scotoma evaluate path appends each trial as it completes and supports --resume, so an interrupted run (rate limits, credit exhaustion) loses no collected data and can be continued in place
 <!-- AC:END -->
