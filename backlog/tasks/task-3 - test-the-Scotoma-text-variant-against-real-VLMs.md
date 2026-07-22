@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-07-22 06:28'
-updated_date: '2026-07-22 07:20'
+updated_date: '2026-07-22 07:30'
 labels: []
 dependencies: []
 ---
@@ -42,13 +42,13 @@ Context: blog post at benswift.me, "A typeface for humans, not machines" (https:
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A per-phrase unblurred legibility baseline is captured per model, so null results are interpretable
-- [ ] #2 A random-string / pseudoword control condition is included to rule out the language prior
-- [ ] #3 A stimulus generator produces the Scotoma condition set from a space-free, length-matched string pool with a minimum pairwise Hamming distance, with colour-role assignment and role order counterbalanced, blur swept, offset fixed at 0.38, and both depth orders rendered
-- [ ] #4 A transcription evaluate path normalises model output and scores each trial against both streams (normalised Levenshtein and positional Hamming, bias index for each, pair distance d(A,B) recorded) and appends to a dedicated JSONL results file
-- [ ] #5 A resolution pre-check confirms the chosen font/canvas size survives provider image downsampling before the main sweep is run
+- [x] #1 A per-phrase unblurred legibility baseline is captured per model, so null results are interpretable
+- [x] #2 A random-string / pseudoword control condition is included to rule out the language prior
+- [x] #3 A stimulus generator produces the Scotoma condition set from a space-free, length-matched string pool with a minimum pairwise Hamming distance, with colour-role assignment and role order counterbalanced, blur swept, offset fixed at 0.38, and both depth orders rendered
+- [x] #4 A transcription evaluate path normalises model output and scores each trial against both streams (normalised Levenshtein and positional Hamming, bias index for each, pair distance d(A,B) recorded) and appends to a dedicated JSONL results file
+- [x] #5 A resolution pre-check confirms the chosen font/canvas size survives provider image downsampling before the main sweep is run
 - [ ] #6 Analysis reports bias index vs blur radius (dose-response), the depth-order effect, and the English vs pseudoword contrast, per model
-- [ ] #7 The Scotoma evaluate path appends each trial as it completes and supports --resume, so an interrupted run (rate limits, credit exhaustion) loses no collected data and can be continued in place
+- [x] #7 The Scotoma evaluate path appends each trial as it completes and supports --resume, so an interrupted run (rate limits, credit exhaustion) loses no collected data and can be continued in place
 <!-- AC:END -->
 
 ## Implementation Plan
