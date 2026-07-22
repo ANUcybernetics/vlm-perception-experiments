@@ -193,11 +193,11 @@ same number of printable characters. Text is uppercased and set in
 to echo the circle stimuli and to hold its core under blur.
 
 Key options: `--blur-fraction` (blur radius as a fraction of font size; `0` =
-crisp control), `--offset-fraction` (diagonal separation of the two layers),
-`--crisp-on-top` (composite the crisp robot layer in front --- the congruent
-control), and `--colour-real` / `--colour-robot`. The two streams must differ in
-colour: same-colour glyphs merge into one silhouette with no occlusion edge, so
-there is no cue for anyone.
+crisp control), `--offset-fraction` (horizontal separation of the two layers, on
+a shared baseline), `--crisp-on-top` (composite the crisp robot layer in front
+--- the congruent control), and `--colour-real` / `--colour-robot`. The two
+streams must differ in colour: same-colour glyphs merge into one silhouette with
+no occlusion edge, so there is no cue for anyone.
 
 Because the encoding is symmetric, the `diptych` subcommand renders the same two
 messages as a stacked pair of panels that swap who reads what --- a human reads

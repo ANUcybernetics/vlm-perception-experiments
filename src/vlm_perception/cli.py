@@ -325,7 +325,7 @@ def scotoma_render(
         0.06, help="Gaussian blur radius as fraction of font size (0 = crisp)"
     ),
     offset_fraction: float = typer.Option(
-        0.35, help="Total diagonal layer separation as fraction of font size"
+        0.35, help="Total horizontal layer separation as fraction of font size"
     ),
     colour_real: str = typer.Option("red", help="Colour of the real stream"),
     colour_robot: str = typer.Option("cyan", help="Colour of the robot stream"),

@@ -38,9 +38,11 @@ def render_scotoma(
 ) -> Image.Image:
     """Render the two streams as a single Scotoma image.
 
-    Each layer's glyphs are offset symmetrically about the cell centre
-    (real down-right, robot up-left) so neither stream sits "on grid" ---
-    no baseline or drop-shadow cue distinguishes them; only the blur does.
+    Each layer's glyphs are offset symmetrically left and right about the
+    cell centre (real to the right, robot to the left) but share a common
+    baseline, so neither stream sits "on grid" and vertical position gives
+    no depth cue --- only the blur does. This mirrors the circle stimuli,
+    which overlapped horizontally at a common vertical centre.
     """
     if style is None:
         style = ScotomaStyle()
@@ -70,7 +72,7 @@ def _render_rows(rows: Layout, style: ScotomaStyle) -> Image.Image:
             cx = pad + cell_w * (col_i + 0.5)
             if real_char is not None:
                 draw_real.text(
-                    (cx + d, cy + d),
+                    (cx + d, cy),
                     real_char,
                     font=font,
                     fill=(*style.colour_real.rgb, 255),
@@ -78,7 +80,7 @@ def _render_rows(rows: Layout, style: ScotomaStyle) -> Image.Image:
                 )
             if robot_char is not None:
                 draw_robot.text(
-                    (cx - d, cy - d),
+                    (cx - d, cy),
                     robot_char,
                     font=font,
                     fill=(*style.colour_robot.rgb, 255),
