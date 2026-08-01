@@ -1,3 +1,11 @@
 [tools]
 uv = "latest"
-fnox = "latest"
+
+# Secrets are exported from the untracked [env] block in
+# ~/.config/mise/config.local.toml. Their 1Password items, kept here because
+# the mapping is tedious to reconstruct and lived only in the removed
+# fnox.toml:
+#   REPLICATE_API_TOKEN     op://Personal/Replicate/credential
+#   OPENAI_API_KEY          op://Personal/OpenAI API/credential
+#   ANTHROPIC_API_KEY       op://Personal/Anthropic API/credential
+#   GOOGLE_AI_STUDIO_TOKEN  op://Personal/Google AI Studio/credential
