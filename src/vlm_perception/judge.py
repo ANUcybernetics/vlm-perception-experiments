@@ -36,7 +36,7 @@ from typing import Any
 
 import anthropic
 import polars as pl
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from vlm_perception.storage import load_results
 
@@ -47,46 +47,73 @@ MAX_RETRIES = 3
 RETRY_BASE_DELAY = 1.0
 
 
-JUDGE_SYSTEM_PROMPT = """You are evaluating reasoning traces produced by multimodal language models attempting a depth-perception task. Each trace is the model's verbatim reasoning when shown two overlapping circles (one with crisp edges, one with blurred edges) and asked which circle is in front (occluding the other).
+JUDGE_SYSTEM_PROMPT = """You are evaluating reasoning traces produced by multimodal \
+language models attempting a depth-perception task. Each trace is the model's verbatim \
+reasoning when shown two overlapping circles (one with crisp edges, one with blurred \
+edges) and asked which circle is in front (occluding the other).
 
-In every trace you will judge, the BLURRED circle is actually in front (occluding the crisp one). The "correct" answer is therefore the blurred circle. The "bias-congruent" answer (which is wrong on this trial) would be to say the crisp circle is in front.
+In every trace you will judge, the BLURRED circle is actually in front (occluding the \
+crisp one). The "correct" answer is therefore the blurred circle. The "bias-congruent" \
+answer (which is wrong on this trial) would be to say the crisp circle is in front.
 
-Your job is to categorise the trace along seven boolean dimensions. Read carefully and answer each independently.
+Your job is to categorise the trace along seven boolean dimensions. Read carefully and \
+answer each independently.
 
 LABEL DEFINITIONS:
 
 1. articulates_sharp_closer (bool)
-   TRUE if the trace explicitly states or strongly implies that sharp/crisp/well-defined edges indicate the object is closer, in front, in the foreground, or nearer to the viewer. Examples that count:
+   TRUE if the trace explicitly states or strongly implies that \
+sharp/crisp/well-defined edges indicate the object is closer, in front, in the \
+foreground, or nearer to the viewer. Examples that count:
    - "the sharp edges suggest the circle is in front"
    - "crisp boundaries typically appear closer"
    - "the well-defined edge means it's the foreground object"
-   FALSE if the trace merely describes one circle as "sharp" without linking sharpness to depth/proximity.
+   FALSE if the trace merely describes one circle as "sharp" without linking sharpness \
+to depth/proximity.
 
 2. articulates_blur_far (bool)
-   TRUE if the trace explicitly states or strongly implies that blurred/diffuse/soft edges indicate the object is further away, behind, in the background, or distant. Examples that count:
+   TRUE if the trace explicitly states or strongly implies that blurred/diffuse/soft \
+edges indicate the object is further away, behind, in the background, or distant. \
+Examples that count:
    - "the blurred edges suggest distance"
    - "the soft outline indicates the circle is behind"
    - "blur means the object is in the background"
-   FALSE if the trace merely describes one circle as "blurred" without linking blur to depth.
+   FALSE if the trace merely describes one circle as "blurred" without linking blur to \
+depth.
 
 3. invokes_dof (bool)
-   TRUE if the trace explicitly mentions depth of field, defocus, bokeh, focus distance, or any photography-rule framing (e.g. "objects in focus are closer to the focal plane", "depth-of-field blur", "out-of-focus elements"). FALSE otherwise.
+   TRUE if the trace explicitly mentions depth of field, defocus, bokeh, focus \
+distance, or any photography-rule framing (e.g. "objects in focus are closer to the \
+focal plane", "depth-of-field blur", "out-of-focus elements"). FALSE otherwise.
 
 4. attempts_occlusion_reasoning (bool)
-   TRUE if the trace tries to reason about edge continuity, overlap geometry, or which circle's boundary "continues through" or is "interrupted" at the overlap region (whether it gets the right answer or not). FALSE if the trace never engages with overlap geometry at all.
+   TRUE if the trace tries to reason about edge continuity, overlap geometry, or which \
+circle's boundary "continues through" or is "interrupted" at the overlap region \
+(whether it gets the right answer or not). FALSE if the trace never engages with \
+overlap geometry at all.
 
 5. identifies_correct_occluder (bool)
-   TRUE if at ANY point in the trace the model correctly identifies the BLURRED circle as the one in front / occluding / overlapping the crisp one (even if it later changes its mind). FALSE if the trace never reaches this conclusion.
+   TRUE if at ANY point in the trace the model correctly identifies the BLURRED circle \
+as the one in front / occluding / overlapping the crisp one (even if it later changes \
+its mind). FALSE if the trace never reaches this conclusion.
 
 6. self_corrects (bool)
-   TRUE if the trace contains a moment where the model surfaces evidence that contradicts its initial reading and explicitly notes the conflict. Markers include "but wait", "actually", "on closer inspection", "let me reconsider", "however, looking again", or any clear pivot from one tentative answer to reconsidering. FALSE if the reasoning proceeds linearly without backtracking.
+   TRUE if the trace contains a moment where the model surfaces evidence that \
+contradicts its initial reading and explicitly notes the conflict. Markers include \
+"but wait", "actually", "on closer inspection", "let me reconsider", "however, looking \
+again", or any clear pivot from one tentative answer to reconsidering. FALSE if the \
+reasoning proceeds linearly without backtracking.
 
 7. reverts_to_bias (bool)
-   TRUE *only if* self_corrects is also TRUE *and* the trace ultimately concludes with the bias-congruent answer (crisp = in front) despite the contradictory evidence it surfaced. FALSE if either the trace doesn't self-correct, or it self-corrects and sticks with the corrected (correct) answer.
+   TRUE *only if* self_corrects is also TRUE *and* the trace ultimately concludes with \
+the bias-congruent answer (crisp = in front) despite the contradictory evidence it \
+surfaced. FALSE if either the trace doesn't self-correct, or it self-corrects and \
+sticks with the corrected (correct) answer.
 
 OUTPUT FORMAT:
 
-Use the `record_judgment` tool with one boolean for each label. Do not output any other text.
+Use the `record_judgment` tool with one boolean for each label. Do not output any \
+other text.
 """
 
 
@@ -256,7 +283,7 @@ async def judge_one(
             if block.type == "tool_use" and block.name == "record_judgment":
                 try:
                     record.judgment = Judgment.model_validate(block.input)
-                except Exception as exc:  # noqa: BLE001
+                except Exception as exc:
                     record.error = f"validation: {exc}"
                 return record
         record.error = "no tool_use block in response"

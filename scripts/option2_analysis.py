@@ -14,7 +14,7 @@ import numpy as np
 import polars as pl
 from scipy.stats.contingency import odds_ratio
 
-from vlm_perception.analysis import _balanced_sweep, _valid, _wilson_ci
+from vlm_perception.analysis import _balanced_sweep, _valid
 from vlm_perception.storage import load_results
 
 RESULTS = Path(__file__).resolve().parents[1] / "results" / "results.jsonl"
@@ -72,7 +72,7 @@ def per_model_table(df: pl.DataFrame, label: str) -> None:
             ci = or_result.confidence_interval(confidence_level=0.95)
             or_str = _fmt_or(or_val)
             ci_str = f"[{_fmt_or(ci.low)}, {_fmt_or(ci.high)}]"
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             or_str = "n/a"
             ci_str = f"({exc})"
 
@@ -110,7 +110,7 @@ def per_blur_pooled(df: pl.DataFrame, label: str) -> None:
             ci = or_result.confidence_interval(confidence_level=0.95)
             or_str = _fmt_or(or_result.statistic)
             ci_str = f"[{_fmt_or(ci.low)}, {_fmt_or(ci.high)}]"
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             or_str = "n/a"
             ci_str = f"({exc})"
 
