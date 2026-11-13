@@ -43,8 +43,8 @@ conditions (96) instead of the full factorial (120). Available prompts:
 definitions are in `src/vlm_perception/prompts.json`.
 
 Evaluation runs concurrently (asyncio with per-provider semaphore). With default
-concurrency=10, a full blur sweep (96 conditions x 3 reps x 6 models x 6 prompts
-= 10,368 trials) takes ~15 minutes.
+concurrency=10, a full blur sweep (96 conditions x 3 reps x 6 models x 6
+prompts = 10,368 trials) takes ~15 minutes.
 
 Results append to `results/results.jsonl`. Analyse with:
 
