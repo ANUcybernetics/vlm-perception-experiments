@@ -57,7 +57,7 @@ def evaluate(
     ),
     blur_sweep: bool = typer.Option(
         False,
-        help="Use reduced blur sweep conditions (80) instead of full factorial (120)",
+        help="Use reduced blur sweep conditions (96) instead of full factorial (120)",
     ),
     resume: bool = typer.Option(
         False,
