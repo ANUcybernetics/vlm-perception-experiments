@@ -220,7 +220,11 @@ def evaluate_anthropic(
             time.sleep(delay)
     raw, thinking = _extract_anthropic_response(response)
     return _make_trial_result(
-        raw, condition, model, prompt_id, prompt,
+        raw,
+        condition,
+        model,
+        prompt_id,
+        prompt,
         reasoning_trace=thinking,
     )
 
@@ -298,7 +302,11 @@ async def async_evaluate_anthropic(
                 await asyncio.sleep(delay)
     raw, thinking = _extract_anthropic_response(response)
     return _make_trial_result(
-        raw, condition, model, prompt_id, prompt,
+        raw,
+        condition,
+        model,
+        prompt_id,
+        prompt,
         reasoning_trace=thinking,
     )
 

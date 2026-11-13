@@ -23,9 +23,8 @@ MODEL_REGISTRY: dict[str, ModelSpec] = {
 def resolve_model(name: str) -> ModelSpec:
     if name in MODEL_REGISTRY:
         return MODEL_REGISTRY[name]
-    raise ValueError(
-        f"Unknown model: {name!r}. Available: {', '.join(MODEL_REGISTRY)}"
-    )
+    raise ValueError(f"Unknown model: {name!r}. Available: {', '.join(MODEL_REGISTRY)}")
+
 
 OKLCH_LIGHTNESS = 0.7
 OKLCH_CHROMA = 0.15

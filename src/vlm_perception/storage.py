@@ -64,10 +64,7 @@ def existing_trial_counts(path: Path) -> dict[tuple, int]:
     if not path.exists() or path.stat().st_size == 0:
         return {}
     df = load_results(path)
-    counts = (
-        df.group_by(TRIAL_KEY_COLS)
-        .agg(pl.col("model").count().alias("n"))
-    )
+    counts = df.group_by(TRIAL_KEY_COLS).agg(pl.col("model").count().alias("n"))
     result = {}
     for row in counts.iter_rows(named=True):
         key = tuple(row[col] for col in TRIAL_KEY_COLS)

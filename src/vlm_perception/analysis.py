@@ -167,9 +167,7 @@ def _data_summary(df: pl.DataFrame) -> str:
     ]
 
     per_model = (
-        valid.group_by("model")
-        .agg(pl.col("correct").count().alias("n"))
-        .sort("model")
+        valid.group_by("model").agg(pl.col("correct").count().alias("n")).sort("model")
     )
     for row in per_model.iter_rows(named=True):
         lines.append(f"  {row['model']}: {row['n']} trials")
@@ -177,9 +175,9 @@ def _data_summary(df: pl.DataFrame) -> str:
     sweep = _balanced_sweep(valid)
     lines.append("")
     lines.append(f"- Balanced blur-sweep subset (4 colour pairs): {len(sweep)} trials")
-    cell_counts = sweep.group_by(
-        "model", "prompt_id", "blur_px", "crisp_on_top"
-    ).agg(pl.col("correct").count().alias("n"))
+    cell_counts = sweep.group_by("model", "prompt_id", "blur_px", "crisp_on_top").agg(
+        pl.col("correct").count().alias("n")
+    )
     min_n = cell_counts["n"].min()
     max_n = cell_counts["n"].max()
     lines.append(f"- Cell sizes in balanced subset: {min_n}--{max_n} trials/cell")
@@ -275,9 +273,7 @@ def _blur_accuracy_curves(df: pl.DataFrame) -> str:
         strat = sweep.filter(pl.col("crisp_on_top") == depth_val)
         for model in [*models, "(pooled)"]:
             sub = (
-                strat
-                if model == "(pooled)"
-                else strat.filter(pl.col("model") == model)
+                strat if model == "(pooled)" else strat.filter(pl.col("model") == model)
             )
             cells = []
             for blur in blur_levels:
@@ -320,9 +316,7 @@ def _blur_stimulus_response(df: pl.DataFrame) -> str:
 
         for model in [*sorted(strat["model"].unique().to_list()), "(pooled)"]:
             sub = (
-                strat
-                if model == "(pooled)"
-                else strat.filter(pl.col("model") == model)
+                strat if model == "(pooled)" else strat.filter(pl.col("model") == model)
             )
             cells = (
                 sub.group_by("blur_px")
@@ -339,8 +333,7 @@ def _blur_stimulus_response(df: pl.DataFrame) -> str:
             z, p = _cochran_armitage(k, n, scores)
             slope = np.polyfit(scores, acc, 1)[0] if len(scores) > 1 else 0.0
             lines.append(
-                f"{model:20s} {z:>+8.2f} {_fmt_p(p):>12s} "
-                f"{slope * 100:>+13.2f}"
+                f"{model:20s} {z:>+8.2f} {_fmt_p(p):>12s} {slope * 100:>+13.2f}"
             )
         lines.append("")
 
@@ -465,9 +458,7 @@ def _zero_blur_baseline(df: pl.DataFrame) -> str:
     pooled_ci = _wilson_ci(pooled_k, pooled_n)
     ct_all = zero.filter(pl.col("crisp_on_top"))
     bt_all = zero.filter(pl.col("crisp_on_top").not_())
-    depth_or_pooled = odds_ratio(
-        _2x2(ct_all, bt_all), kind="conditional"
-    ).statistic
+    depth_or_pooled = odds_ratio(_2x2(ct_all, bt_all), kind="conditional").statistic
     n_left_all = int(zero.filter(pl.col("parsed_answer") == "left").height)
     lines.append(
         f"{'(pooled)':20s} {pooled_n:>5d} {_fmt_pct(pooled_k / pooled_n):>9s} "
@@ -512,18 +503,14 @@ def _model_comparison(df: pl.DataFrame) -> str:
         k_arr = ct["k"].to_list()
         n_arr = ct["n"].to_list()
 
-        table = np.column_stack(
-            [ct["k"].to_numpy(), (ct["n"] - ct["k"]).to_numpy()]
-        )
+        table = np.column_stack([ct["k"].to_numpy(), (ct["n"] - ct["k"]).to_numpy()])
         if np.any(table.sum(axis=0) == 0):
             lines.append(
                 f"### {depth_label}: chi-square not applicable (zero marginal)"
             )
             lines.append("")
             for i, m in enumerate(models):
-                lines.append(
-                    f"  {m}: {_fmt_pct(k_arr[i] / n_arr[i])} (n={n_arr[i]})"
-                )
+                lines.append(f"  {m}: {_fmt_pct(k_arr[i] / n_arr[i])} (n={n_arr[i]})")
             lines.append("")
             continue
         chi2_val, p, dof, _ = chi2_contingency(table)
@@ -537,8 +524,7 @@ def _model_comparison(df: pl.DataFrame) -> str:
         for i, m in enumerate(models):
             ci = _wilson_ci(k_arr[i], n_arr[i])
             lines.append(
-                f"  {m}: {_fmt_pct(k_arr[i] / n_arr[i])} {_fmt_ci(*ci)} "
-                f"(n={n_arr[i]})"
+                f"  {m}: {_fmt_pct(k_arr[i] / n_arr[i])} {_fmt_ci(*ci)} (n={n_arr[i]})"
             )
         lines.append("")
 
@@ -564,13 +550,9 @@ def _model_comparison(df: pl.DataFrame) -> str:
                 f"(Holm-corrected, {len(pairs)} comparisons):"
             )
             for label, raw, adj in sig_pairs:
-                lines.append(
-                    f"  {label}: p_raw = {_fmt_p(raw)}, p_adj = {_fmt_p(adj)}"
-                )
+                lines.append(f"  {label}: p_raw = {_fmt_p(raw)}, p_adj = {_fmt_p(adj)}")
         else:
-            lines.append(
-                "No significant pairwise differences after Holm correction."
-            )
+            lines.append("No significant pairwise differences after Holm correction.")
         lines.append("")
 
     return "\n".join(lines)
@@ -604,9 +586,7 @@ def _prompt_effects(df: pl.DataFrame) -> str:
             )
             .sort("prompt_id")
         )
-        table = np.column_stack(
-            [ct["k"].to_numpy(), (ct["n"] - ct["k"]).to_numpy()]
-        )
+        table = np.column_stack([ct["k"].to_numpy(), (ct["n"] - ct["k"]).to_numpy()])
         if np.any(table.sum(axis=0) == 0):
             continue
         chi2_val, p, dof, _ = chi2_contingency(table)
@@ -639,9 +619,7 @@ def _prompt_effects(df: pl.DataFrame) -> str:
         .sort("model")
     )
     prompt_cols = [c for c in wide.columns if c != "model"]
-    header = f"{'Model':20s} " + " ".join(
-        f"{p:>13s}" for p in sorted(prompt_cols)
-    )
+    header = f"{'Model':20s} " + " ".join(f"{p:>13s}" for p in sorted(prompt_cols))
     lines.append(header)
     lines.append("-" * len(header))
     for row in wide.iter_rows(named=True):
@@ -686,26 +664,19 @@ def _nuisance_variables(df: pl.DataFrame) -> str:
         [side_ct["k"].to_numpy(), (side_ct["n"] - side_ct["k"]).to_numpy()]
     )
     if np.any(table.sum(axis=0) == 0):
-        lines.append(
-            "Marginal effect: chi-square not applicable (zero marginal)"
-        )
+        lines.append("Marginal effect: chi-square not applicable (zero marginal)")
     else:
         chi2_val, p, dof, _ = chi2_contingency(table)
         v = association(table, method="cramer")
         lines.append(
-            f"Marginal effect: χ²({dof}) = {chi2_val:.2f}, "
-            f"p = {_fmt_p(p)}, V = {v:.4f}"
+            f"Marginal effect: χ²({dof}) = {chi2_val:.2f}, p = {_fmt_p(p)}, V = {v:.4f}"
         )
     for row in side_ct.iter_rows(named=True):
         acc = row["k"] / row["n"]
-        lines.append(
-            f"  {row['crisp_side']}: {_fmt_pct(acc)} (n={row['n']})"
-        )
+        lines.append(f"  {row['crisp_side']}: {_fmt_pct(acc)} (n={row['n']})")
     lines.append("")
 
-    lines.append(
-        "Side x depth order interaction (does side bias differ by depth?):"
-    )
+    lines.append("Side x depth order interaction (does side bias differ by depth?):")
     for depth_label, depth_val in [
         ("Crisp on top", True),
         ("Blurred on top", False),
@@ -737,15 +708,12 @@ def _nuisance_variables(df: pl.DataFrame) -> str:
         [colour_ct["k"].to_numpy(), (colour_ct["n"] - colour_ct["k"]).to_numpy()]
     )
     if np.any(table.sum(axis=0) == 0):
-        lines.append(
-            "Marginal effect: chi-square not applicable (zero marginal)"
-        )
+        lines.append("Marginal effect: chi-square not applicable (zero marginal)")
     else:
         chi2_val, p, dof, _ = chi2_contingency(table)
         v = association(table, method="cramer")
         lines.append(
-            f"Marginal effect: χ²({dof}) = {chi2_val:.2f}, "
-            f"p = {_fmt_p(p)}, V = {v:.4f}"
+            f"Marginal effect: χ²({dof}) = {chi2_val:.2f}, p = {_fmt_p(p)}, V = {v:.4f}"
         )
         lines.append(
             f"  {dof + 1} colour pairs tested; V = {v:.4f} indicates "
@@ -807,9 +775,7 @@ def _summary_table(df: pl.DataFrame) -> str:
             )
             .sort("blur_px")
         )
-        z, _ = _cochran_armitage(
-            cells["k"].to_numpy(), cells["n"].to_numpy(), scores
-        )
+        z, _ = _cochran_armitage(cells["k"].to_numpy(), cells["n"].to_numpy(), scores)
 
         lines.append(
             f"{model:20s} {_fmt_pct(ct_k / ct_n):>8s} "

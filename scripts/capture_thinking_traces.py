@@ -100,18 +100,20 @@ def main():
                 elif isinstance(block, anthropic.types.TextBlock):
                     answer_text = block.text
 
-            traces.append({
-                "model": model,
-                "condition": {
-                    "crisp_on_top": cond.crisp_on_top,
-                    "crisp_side": cond.crisp_side.value,
-                    "colour_crisp": cond.colour_crisp.value,
-                    "colour_blurred": cond.colour_blurred.value,
-                    "correct_answer": cond.correct_answer.value,
-                },
-                "thinking": thinking_text,
-                "answer": answer_text,
-            })
+            traces.append(
+                {
+                    "model": model,
+                    "condition": {
+                        "crisp_on_top": cond.crisp_on_top,
+                        "crisp_side": cond.crisp_side.value,
+                        "colour_crisp": cond.colour_crisp.value,
+                        "colour_blurred": cond.colour_blurred.value,
+                        "correct_answer": cond.correct_answer.value,
+                    },
+                    "thinking": thinking_text,
+                    "answer": answer_text,
+                }
+            )
             print(f"  answer: {answer_text.strip()}")
             print(f"  thinking: {thinking_text[:200]}...")
             print()

@@ -48,16 +48,15 @@ def _fmt_or(v: float) -> str:
 
 def per_model_table(df: pl.DataFrame, label: str) -> None:
     print(f"\n## Per-model summary: {label}")
-    print(f"{'Model':22s} {'n':>6s} {'Crisp↑':>9s} {'Blurred↑':>10s} "
-          f"{'OR':>10s} {'95% CI':>20s} {'0px acc':>10s}")
+    print(
+        f"{'Model':22s} {'n':>6s} {'Crisp↑':>9s} {'Blurred↑':>10s} "
+        f"{'OR':>10s} {'95% CI':>20s} {'0px acc':>10s}"
+    )
     print("-" * 92)
 
     valid = _valid(df)
     for model in [*MODEL_ORDER, "(pooled)"]:
-        sub = (
-            valid if model == "(pooled)"
-            else valid.filter(pl.col("model") == model)
-        )
+        sub = valid if model == "(pooled)" else valid.filter(pl.col("model") == model)
         if len(sub) == 0:
             continue
         ct = sub.filter(pl.col("crisp_on_top"))
@@ -84,15 +83,19 @@ def per_model_table(df: pl.DataFrame, label: str) -> None:
         else:
             zero_acc = "n/a"
 
-        print(f"{model:22s} {len(sub):>6d} {ct_acc:>8.1f}% {bt_acc:>9.1f}% "
-              f"{or_str:>10s} {ci_str:>20s} {zero_acc:>10s}")
+        print(
+            f"{model:22s} {len(sub):>6d} {ct_acc:>8.1f}% {bt_acc:>9.1f}% "
+            f"{or_str:>10s} {ci_str:>20s} {zero_acc:>10s}"
+        )
 
 
 def per_blur_pooled(df: pl.DataFrame, label: str) -> None:
     print(f"\n## Per-blur pooled accuracy + OR: {label}")
     sweep = _balanced_sweep(_valid(df))
-    print(f"{'Blur':>6s} {'n':>6s} {'Acc(crisp↑)':>13s} "
-          f"{'Acc(blur↑)':>12s} {'OR':>10s} {'95% CI':>20s}")
+    print(
+        f"{'Blur':>6s} {'n':>6s} {'Acc(crisp↑)':>13s} "
+        f"{'Acc(blur↑)':>12s} {'OR':>10s} {'95% CI':>20s}"
+    )
     print("-" * 70)
 
     for blur in sorted(sweep["blur_px"].unique().to_list()):
@@ -111,8 +114,10 @@ def per_blur_pooled(df: pl.DataFrame, label: str) -> None:
             or_str = "n/a"
             ci_str = f"({exc})"
 
-        print(f"{blur:>6d} {len(sub):>6d} {ct_acc:>12.1f}% "
-              f"{bt_acc:>11.1f}% {or_str:>10s} {ci_str:>20s}")
+        print(
+            f"{blur:>6d} {len(sub):>6d} {ct_acc:>12.1f}% "
+            f"{bt_acc:>11.1f}% {or_str:>10s} {ci_str:>20s}"
+        )
 
 
 def main() -> None:

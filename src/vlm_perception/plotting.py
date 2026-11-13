@@ -50,7 +50,9 @@ PROMPT_LABELS = {
 }
 
 
-def _prepare_stimulus_response(df: pl.DataFrame, exclude_thinking: bool = True) -> pl.DataFrame:
+def _prepare_stimulus_response(
+    df: pl.DataFrame, exclude_thinking: bool = True
+) -> pl.DataFrame:
     valid = _valid(df)
     if exclude_thinking:
         valid = valid.filter(pl.col("prompt_id") != "thinking")
@@ -73,15 +75,17 @@ def _prepare_stimulus_response(df: pl.DataFrame, exclude_thinking: bool = True) 
     return grouped
 
 
-def stimulus_response_chart(df: pl.DataFrame, exclude_thinking: bool = True) -> alt.Chart:
+def stimulus_response_chart(
+    df: pl.DataFrame, exclude_thinking: bool = True
+) -> alt.Chart:
     data = _prepare_stimulus_response(df, exclude_thinking=exclude_thinking)
     label_order = [MODEL_LABELS[m] for m in MODEL_ORDER if m in MODEL_LABELS]
 
     base = alt.Chart(data)
 
-    chance = base.mark_rule(
-        strokeDash=[4, 4], stroke="grey", strokeWidth=1
-    ).encode(y=alt.datum(50))
+    chance = base.mark_rule(strokeDash=[4, 4], stroke="grey", strokeWidth=1).encode(
+        y=alt.datum(50)
+    )
 
     lines = base.mark_line(point=True).encode(
         x=alt.X("blur_px:Q", title="Blur radius (px)", scale=alt.Scale(domain=[0, 20])),
@@ -136,9 +140,9 @@ def prompt_invariance_chart(df: pl.DataFrame) -> alt.Chart:
 
     base = alt.Chart(data)
 
-    chance = base.mark_rule(
-        strokeDash=[4, 4], stroke="grey", strokeWidth=1
-    ).encode(y=alt.datum(50))
+    chance = base.mark_rule(strokeDash=[4, 4], stroke="grey", strokeWidth=1).encode(
+        y=alt.datum(50)
+    )
 
     lines = base.mark_line(point=True).encode(
         x=alt.X(

@@ -175,7 +175,9 @@ def extract_trace(row: dict[str, Any]) -> tuple[str, str] | None:
     return None
 
 
-def build_records(df: pl.DataFrame, *, only_bias_incongruent: bool = True) -> list[JudgeRecord]:
+def build_records(
+    df: pl.DataFrame, *, only_bias_incongruent: bool = True
+) -> list[JudgeRecord]:
     rows = df.to_dicts()
     records: list[JudgeRecord] = []
     for row in rows:
@@ -300,9 +302,7 @@ def run_judge(
     if limit is not None:
         records = records[:limit]
     log.info("judging %d traces with %s", len(records), JUDGE_MODEL)
-    asyncio.run(
-        judge_all(records, concurrency=concurrency, output_path=output_path)
-    )
+    asyncio.run(judge_all(records, concurrency=concurrency, output_path=output_path))
     log.info("wrote %s", output_path)
 
 
@@ -340,16 +340,13 @@ def load_judgments(judgments_path: Path) -> pl.DataFrame:
     return pl.DataFrame(rows)
 
 
-def join_with_results(
-    judgments_df: pl.DataFrame, results_path: Path
-) -> pl.DataFrame:
+def join_with_results(judgments_df: pl.DataFrame, results_path: Path) -> pl.DataFrame:
     """Join judgments with original results to recover trial correctness."""
     results = load_results(results_path)
     join_keys = ["model", "prompt_id", "blur_px", "crisp_on_top"]
     # Keep only the correctness flag from results; aggregate to handle reps
-    results_agg = (
-        results.group_by(join_keys)
-        .agg(pl.col("correct").mean().alias("correct_rate"))
+    results_agg = results.group_by(join_keys).agg(
+        pl.col("correct").mean().alias("correct_rate")
     )
     return judgments_df.join(results_agg, on=join_keys, how="left")
 
@@ -368,9 +365,7 @@ def judgment_summary(judgments_path: Path) -> str:
     ]
 
     for prompt in ("cot", "thinking"):
-        sub = df.filter(
-            (pl.col("prompt_id") == prompt) & pl.col("error").is_null()
-        )
+        sub = df.filter((pl.col("prompt_id") == prompt) & pl.col("error").is_null())
         if len(sub) == 0:
             continue
 
@@ -380,9 +375,8 @@ def judgment_summary(judgments_path: Path) -> str:
         )
         lines.append("")
 
-        header = (
-            f"{'Model':22s} {'n':>5s} "
-            + " ".join(f"{f.replace('_', ' ')[:14]:>15s}" for f in LABEL_FIELDS)
+        header = f"{'Model':22s} {'n':>5s} " + " ".join(
+            f"{f.replace('_', ' ')[:14]:>15s}" for f in LABEL_FIELDS
         )
         lines.append(header)
         lines.append("-" * len(header))

@@ -45,7 +45,8 @@ def generate_image(condition: Condition) -> Image.Image:
 
     crisp_layer = _draw_circle(condition.colour_crisp.rgb, crisp_centre)
     blurred_layer = _draw_circle(
-        condition.colour_blurred.rgb, blurred_centre,
+        condition.colour_blurred.rgb,
+        blurred_centre,
         blur_radius=condition.blur_radius,
     )
 
