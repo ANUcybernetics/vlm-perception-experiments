@@ -9,7 +9,7 @@ from vlm_perception.storage import load_results
 FONT = "Libertinus Sans"
 
 
-def _configure(chart: alt.Chart | alt.FacetChart) -> alt.Chart | alt.FacetChart:
+def _configure[C: (alt.Chart, alt.FacetChart)](chart: C) -> C:
     return chart.configure(
         font=FONT,
     ).configure_legend(
@@ -77,7 +77,7 @@ def _prepare_stimulus_response(
 
 def stimulus_response_chart(
     df: pl.DataFrame, exclude_thinking: bool = True
-) -> alt.Chart:
+) -> alt.FacetChart:
     data = _prepare_stimulus_response(df, exclude_thinking=exclude_thinking)
     label_order = [MODEL_LABELS[m] for m in MODEL_ORDER if m in MODEL_LABELS]
 
@@ -133,7 +133,7 @@ def _prepare_prompt_invariance(df: pl.DataFrame) -> pl.DataFrame:
     return grouped
 
 
-def prompt_invariance_chart(df: pl.DataFrame) -> alt.Chart:
+def prompt_invariance_chart(df: pl.DataFrame) -> alt.FacetChart:
     data = _prepare_prompt_invariance(df)
     label_order = [MODEL_LABELS[m] for m in MODEL_ORDER if m in MODEL_LABELS]
     prompt_label_order = [PROMPT_LABELS[p] for p in PROMPT_ORDER]
@@ -182,7 +182,7 @@ def prompt_invariance_chart(df: pl.DataFrame) -> alt.Chart:
     return _configure(chart)
 
 
-def save_chart(chart: alt.Chart, output: Path) -> None:
+def save_chart(chart: alt.Chart | alt.FacetChart, output: Path) -> None:
     suffix = output.suffix.lower()
     if suffix == ".pdf":
         chart.save(str(output), format="pdf")

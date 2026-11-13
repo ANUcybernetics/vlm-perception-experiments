@@ -36,6 +36,7 @@ from typing import Any
 
 import anthropic
 import polars as pl
+from anthropic.types import ToolParam
 from pydantic import BaseModel
 
 from vlm_perception.storage import load_results
@@ -117,7 +118,7 @@ other text.
 """
 
 
-JUDGE_TOOL: dict[str, Any] = {
+JUDGE_TOOL: ToolParam = {
     "name": "record_judgment",
     "description": "Record the seven boolean labels for the trace.",
     "input_schema": {
