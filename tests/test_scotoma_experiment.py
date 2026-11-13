@@ -170,6 +170,7 @@ def test_parse_transcriptions_empty():
 def test_score_transcription_reads_robot_stream():
     score = score_transcription('{"text": "BACKGROUND"}', "ABSOLUTELY", "BACKGROUND")
     assert score.dist_robot_lev == 0.0
+    assert score.dist_real_lev is not None
     assert score.dist_real_lev > 0
     assert score.bias_index_lev == 1.0
     assert score.bias_index_ham == 1.0

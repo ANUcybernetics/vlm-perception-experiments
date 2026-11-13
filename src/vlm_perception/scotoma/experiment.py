@@ -46,7 +46,7 @@ PSEUDO_POOL = [
     "NEPLASTEKT",
 ]
 
-POOLS: dict[str, list[str]] = {"english": ENGLISH_POOL, "pseudo": PSEUDO_POOL}
+POOLS: dict[PoolName, list[str]] = {"english": ENGLISH_POOL, "pseudo": PSEUDO_POOL}
 
 # 0 = no-blur baseline; 0.07 was the pre-sweep Scotoma default (the
 # sweep moved it to 0.10). blur_px = blur_fraction * font_size.
