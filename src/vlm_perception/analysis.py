@@ -598,15 +598,16 @@ def _prompt_effects(df: pl.DataFrame) -> str:
         lines.append("")
 
         prompts = ct["prompt_id"].to_list()
-        accs = {
-            pid: sub.filter(pl.col("prompt_id") == pid)["correct"].mean()
-            for pid in prompts
-        }
+        accs: dict[str, float] = {}
+        for pid in prompts:
+            acc = sub.filter(pl.col("prompt_id") == pid)["correct"].mean()
+            assert isinstance(acc, float)
+            accs[pid] = acc
         for pid in sorted(prompts, key=lambda x: accs[x], reverse=True):
             k = int(sub.filter(pl.col("prompt_id") == pid)["correct"].sum())
             n = int(sub.filter(pl.col("prompt_id") == pid).height)
             ci = _wilson_ci(k, n)
-            lines.append(f"  {pid}: {_fmt_pct(float(accs[pid]))} {_fmt_ci(*ci)}")  # ty: ignore[invalid-argument-type]
+            lines.append(f"  {pid}: {_fmt_pct(accs[pid])} {_fmt_ci(*ci)}")
         lines.append("")
 
     lines.append("### Accuracy by model x prompt (blurred on top)")

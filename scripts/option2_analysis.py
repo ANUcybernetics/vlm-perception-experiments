@@ -38,6 +38,12 @@ def _2x2(sub_a: pl.DataFrame, sub_b: pl.DataFrame) -> np.ndarray:
     )
 
 
+def _mean_pct(series: pl.Series) -> float:
+    mean = series.mean()
+    assert isinstance(mean, float)
+    return mean * 100
+
+
 def _fmt_or(v: float) -> str:
     if v > 9999:
         return f"{v:.0f}"
@@ -63,8 +69,8 @@ def per_model_table(df: pl.DataFrame, label: str) -> None:
         bt = sub.filter(pl.col("crisp_on_top").not_())
         ct_n = len(ct)
         bt_n = len(bt)
-        ct_acc = ct["correct"].mean() * 100 if ct_n else 0
-        bt_acc = bt["correct"].mean() * 100 if bt_n else 0
+        ct_acc = _mean_pct(ct["correct"]) if ct_n else 0
+        bt_acc = _mean_pct(bt["correct"]) if bt_n else 0
         table = _2x2(ct, bt)
         try:
             or_result = odds_ratio(table, kind="conditional")
@@ -79,7 +85,7 @@ def per_model_table(df: pl.DataFrame, label: str) -> None:
         # 0px accuracy (pooled across both depth orders, balanced sweep)
         sweep_sub = _balanced_sweep(sub).filter(pl.col("blur_px") == 0)
         if len(sweep_sub):
-            zero_acc = f"{sweep_sub['correct'].mean() * 100:.1f}%"
+            zero_acc = f"{_mean_pct(sweep_sub['correct']):.1f}%"
         else:
             zero_acc = "n/a"
 
@@ -102,8 +108,8 @@ def per_blur_pooled(df: pl.DataFrame, label: str) -> None:
         sub = sweep.filter(pl.col("blur_px") == blur)
         ct = sub.filter(pl.col("crisp_on_top"))
         bt = sub.filter(pl.col("crisp_on_top").not_())
-        ct_acc = ct["correct"].mean() * 100
-        bt_acc = bt["correct"].mean() * 100
+        ct_acc = _mean_pct(ct["correct"])
+        bt_acc = _mean_pct(bt["correct"])
         table = _2x2(ct, bt)
         try:
             or_result = odds_ratio(table, kind="conditional")
